@@ -1,0 +1,45 @@
+// Module-level build.gradle file
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id 'com.google.gms.google-services'
+}
+
+android {
+    compileSdkVersion flutter.compileSdkVersion
+
+    defaultConfig {
+        applicationId "com.example.smartpantri"
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode 1 // Provide a default value if not set
+        versionName "1.0" // Provide a default value if not set
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    // Ensure other configurations are correctly set
+}
+
+
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.1.0')
+    mplementation 'com.google.firebase:firebase-core'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    // Add additional Firebase libraries as needed without specifying versions
+    implementation("com.some.dependency:version") {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+  }
+}
+
+flutter {
+    source "../.."
+}
+
+apply plugin: 'com.google.gms.google-services'
+

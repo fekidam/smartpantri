@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "533680516754",
+    "project_id": "smartpantri-dc717",
+    "storage_bucket": "smartpantri-dc717.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:533680516754:android:765749a5ba0cc3db5a404b",
+        "android_client_info": {
+          "package_name": "com.example.smartpantri"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAn88hyOzzza0xWcqUBcnk8cWgnsHrQ2wI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
