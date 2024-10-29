@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,6 +18,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController birthDateController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
+  DateTime? selectedDate;
+
+  String? _validatePassword(String? value) {
+    String pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$';
+    RegExp regex = RegExp(pattern);
+    if (value == null || value.isEmpty) {
+      return 'Please enter your password';
+    } else if (!regex.hasMatch(value)) {
+      return 'Password must contain upper and lower case letters, numbers, and be at least 8 characters long';
+    }
+    return null;
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+        birthDateController.text = DateFormat('yyyy-MM-dd').format(selectedDate!);
+      });
+    }
+  }
+
+  Future<void> _register() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: emailController.text,
+          password: passwordController.text,
+        );
+        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+          'firstName': firstNameController.text,
+          'lastName': lastNameController.text,
+          'birthDate': birthDateController.text,
+          'email': emailController.text,
+        });
+        Navigator.pushReplacementNamed(context, '/verify-email');
+      } on FirebaseAuthException catch (e) {
+        print('Registration error: $e');
+      } catch (e) {
+        print('Registration error: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }
                   return null;
                 },
+                onFieldSubmitted: (_) => _register(),
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -74,11 +126,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }
                   return null;
                 },
+                onFieldSubmitted: (_) => _register(),
               ),
               const SizedBox(height: 20),
               TextFormField(
                 controller: birthDateController,
                 style: const TextStyle(color: Colors.white),
+                readOnly: true,
+                onTap: () => _selectDate(context),
                 decoration: const InputDecoration(
                   hintText: 'Birth Date (YYYY-MM-DD)',
                   hintStyle: TextStyle(color: Colors.white70),
@@ -91,7 +146,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your birth date';
+                    return 'Please select your birth date';
                   }
                   return null;
                 },
@@ -116,31 +171,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }
                   return null;
                 },
+                onFieldSubmitted: (_) => _register(),
               ),
               const SizedBox(height: 20),
               TextFormField(
                 controller: passwordController,
-                obscureText: true,
+                obscureText: _obscurePassword,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Password',
-                  hintStyle: TextStyle(color: Colors.white70),
-                  enabledBorder: OutlineInputBorder(
+                  hintStyle: const TextStyle(color: Colors.white70),
+                  enabledBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.green, width: 1),
                   ),
-                  focusedBorder: OutlineInputBorder(
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.green, width: 2),
                   ),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
-                  return null;
-                },
+                validator: _validatePassword,
+                onFieldSubmitted: (_) => _register(),
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -166,33 +223,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }
                   return null;
                 },
+                onFieldSubmitted: (_) => _register(),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    try {
-                      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-                        email: emailController.text,
-                        password: passwordController.text,
-                      );
-                      // Registration successful, save additional user data to Firestore
-                      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-                        'firstName': firstNameController.text,
-                        'lastName': lastNameController.text,
-                        'birthDate': birthDateController.text,
-                        'email': emailController.text,
-                      });
-                      Navigator.pushReplacementNamed(context, '/verify-email');
-                    } on FirebaseAuthException catch (e) {
-                      // Handle registration error
-                      print('Registration error: $e');
-                    } catch (e) {
-                      // Handle general error
-                      print('Registration error: $e');
-                    }
-                  }
-                },
+                onPressed: _register,
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                 child: const Text('Register'),
               ),

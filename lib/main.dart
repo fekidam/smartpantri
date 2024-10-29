@@ -11,7 +11,7 @@ import 'chat_screen.dart';
 import 'notifications.dart';
 import 'settings.dart';
 import 'add_item.dart';
-import 'shopping_lists.dart'; // Import the necessary files
+import 'shopping_lists.dart';
 import 'expense_tracker.dart';
 import 'fridge_items.dart';
 
@@ -69,7 +69,7 @@ class _MyAppState extends State<MyApp> {
         '/add-item': (context) => const AddItemScreen(collectionName: 'shopping_list'),
         '/add-expense': (context) => const AddItemScreen(collectionName: 'expenses'),
         '/add-fridge-item': (context) => const AddItemScreen(collectionName: 'fridge_items'),
-        '/shopping-lists': (context) => ShoppingListsScreen(isGuest: isGuestMode),
+        '/shopping-lists': (context) => ShoppingListScreen(isGuest: isGuestMode),
         '/expenses': (context) => ExpenseTrackerScreen(isGuest: isGuestMode),
         '/fridge-items': (context) => FridgeItemsScreen(isGuest: isGuestMode),
       },

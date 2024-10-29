@@ -29,35 +29,31 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     }
   }
 
+  void _customBackNavigation() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Sample list of recipes
     final List<Map<String, String>> recipes = [
-      {
-        'name': 'Spaghetti Carbonara',
-        'image': 'assets/images/carbonara.jpg'
-      },
-      {
-        'name': 'Chicken Alfredo',
-        'image': 'assets/images/chickenalfredo.jpg'
-      },
-      {
-        'name': 'Beef Stroganoff',
-        'image': 'assets/images/beefstroganoff.jpg'
-      },
-      {
-        'name': 'Vegetable Stir Fry',
-        'image': 'assets/images/vegetablestirfry.jpg'
-      },
-      // Add more recipes as needed
+      {'name': 'Spaghetti Carbonara', 'image': 'assets/images/carbonara.jpg'},
+      {'name': 'Chicken Alfredo', 'image': 'assets/images/chickenalfredo.jpg'},
+      {'name': 'Beef Stroganoff', 'image': 'assets/images/beefstroganoff.jpg'},
+      {'name': 'Vegetable Stir Fry', 'image': 'assets/images/vegetablestirfry.jpg'},
     ];
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _customBackNavigation,
+        ),
         title: const Text('Recipe Suggestions'),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings),
+            icon: const Icon(Icons.settings),
             onPressed: _navigateToAllergySelection,
           ),
         ],

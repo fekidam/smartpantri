@@ -1,14 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+  class _LoginScreenState extends State<LoginScreen> {
     TextEditingController emailController = TextEditingController();
     TextEditingController passwordController = TextEditingController();
+    String? errorMessage;
+    
 
+ Future<void> login() async {
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: emailController.text,
+      password: passwordController.text,
+    );
+    Navigator.pushReplacementNamed(context, '/home');
+  } on FirebaseAuthException catch (e) {
+    setState(() {
+      if (e.code == 'wrong-password') {
+        errorMessage = 'Nem megfelelő a jelszó.';
+      } else if (e.code == 'user-not-found') {
+        errorMessage = 'Nincs ilyen e-mail cím regisztrálva.';
+      } else {
+        errorMessage = 'Bejelentkezési hiba. Próbáld újra.';
+      }
+    });
+  }
+}
+
+
+
+   @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Padding(
@@ -34,6 +63,7 @@ class LoginScreen extends StatelessWidget {
                   borderSide: BorderSide(color: Colors.blue, width: 2),
                 ),
               ),
+              onFieldSubmitted: (_) => login(),
             ),
             const SizedBox(height: 20),
             TextFormField(
@@ -50,25 +80,20 @@ class LoginScreen extends StatelessWidget {
                   borderSide: BorderSide(color: Colors.green, width: 2),
                 ),
               ),
+              onFieldSubmitted: (_) => login(),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async {
-                try {
-                  UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                    email: emailController.text,
-                    password: passwordController.text,
-                  );
-                  // Login successful, navigate to home
-                  Navigator.pushReplacementNamed(context, '/home');
-                } on FirebaseAuthException catch (e) {
-                  // Handle login error
-                  print('Login error: $e');
-                }
-              },
+              onPressed: login,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Log In'),
+              child: const Text('Log in'),
             ),
+            const SizedBox(height: 10),
+            if(errorMessage != null)
+              Text(
+                errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
             TextButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/register');
@@ -81,3 +106,4 @@ class LoginScreen extends StatelessWidget {
     );
   }
 }
+ 
