@@ -29,7 +29,7 @@ class SectionTitle extends StatelessWidget {
 
 class ShoppingListsSection extends StatelessWidget {
   final VoidCallback onAdd;
-  final List<String> items;  // This will hold the list items
+  final List<String> items;
 
   const ShoppingListsSection({super.key, required this.onAdd, required this.items});
 
@@ -39,8 +39,8 @@ class ShoppingListsSection extends StatelessWidget {
       children: <Widget>[
         SectionTitle(title: "Shopping Lists", onAdd: onAdd),
         ListView.builder(
-          shrinkWrap: true,  // Needed to build a list view within a column
-          physics: const NeverScrollableScrollPhysics(), // Disable scrolling within the list view
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: items.length,
           itemBuilder: (context, index) {
             return ListTile(

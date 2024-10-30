@@ -29,12 +29,6 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     }
   }
 
-  void _customBackNavigation() {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final List<Map<String, String>> recipes = [
@@ -46,10 +40,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _customBackNavigation,
-        ),
+        automaticallyImplyLeading: false, // Removes the back arrow
         title: const Text('Recipe Suggestions'),
         actions: [
           IconButton(
