@@ -1,98 +1,72 @@
 import 'package:flutter/material.dart';
-import 'recipe_suggestions.dart';
-import 'chat_screen.dart';
-import 'notifications.dart';
-import 'settings.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'groups.dart';
+import 'data.dart';
 
 class HomeScreen extends StatefulWidget {
-  final bool isGuest;
-
-  const HomeScreen({Key? key, this.isGuest = false}) : super(key: key);
+  const HomeScreen({Key? key, required bool isGuest}) : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+  final User? user = FirebaseAuth.instance.currentUser;
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  Stream<List<Group>> _fetchGroups() {
+    if (user == null) {
+      return Stream.value([]);
+    }
+    return FirebaseFirestore.instance
+        .collection('groups')
+        .where('userId', isEqualTo: user!.uid)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return Group.fromJson(doc.id, doc.data() as Map<String, dynamic>);
+          }).toList();
+        });
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> _pages = <Widget>[
-      HomeContent(isGuest: widget.isGuest),
-      const RecipeSuggestionsScreen(),
-      const ChatScreen(),
-      const NotificationsScreen(),
-      const SettingsScreen(),
-    ];
-
     return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Recipes',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notifications',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        onTap: _onItemTapped,
+      appBar: AppBar(title: const Text("Your Groups")),
+      body: StreamBuilder<List<Group>>(
+        stream: _fetchGroups(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("No groups found"));
+          }
+          List<Group> groups = snapshot.data!;
+          return ListView(
+            children: groups.map((group) {
+              return ListTile(
+                title: Text(group.name),
+                leading: CircleAvatar(
+                  backgroundColor: Color(int.parse('0xFF${group.color}')),
+                ),
+                onTap: () {
+                  // Navigate to Group details
+                },
+              );
+            }).toList(),
+          );
+        },
       ),
-    );
-  }
-}
-
-class HomeContent extends StatelessWidget {
-  final bool isGuest;
-
-  const HomeContent({Key? key, required this.isGuest}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        ListTile(
-          title: const Text('Shopping Lists'),
-          onTap: () {
-            Navigator.pushNamed(context, '/shopping-lists');
-          },
-        ),
-        ListTile(
-          title: const Text('Expenses'),
-          onTap: () {
-            Navigator.pushNamed(context, '/expenses');
-          },
-        ),
-        ListTile(
-          title: const Text('What\'s in the Fridge'),
-          onTap: () {
-            Navigator.pushNamed(context, '/fridge-items');
-          },
-        ),
-      ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }

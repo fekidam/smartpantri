@@ -16,13 +16,19 @@ class LoginScreen extends StatefulWidget {
 
  Future<void> login() async {
   try {
+    // Sign in with Firebase using email and password
     UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: emailController.text,
-      password: passwordController.text,
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
     );
-    Navigator.pushReplacementNamed(context, '/home');
+
+    // Check if the user is not null and navigate to home
+    if (userCredential.user != null) {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
   } on FirebaseAuthException catch (e) {
     setState(() {
+      // Handle Firebase-specific error codes
       if (e.code == 'wrong-password') {
         errorMessage = 'Nem megfelelő a jelszó.';
       } else if (e.code == 'user-not-found') {
@@ -31,8 +37,14 @@ class LoginScreen extends StatefulWidget {
         errorMessage = 'Bejelentkezési hiba. Próbáld újra.';
       }
     });
+  } catch (e) {
+    // Handle other potential errors
+    setState(() {
+      errorMessage = 'Bejelentkezési hiba. Próbáld újra.';
+    });
   }
 }
+
 
 
 
