@@ -3,14 +3,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ExpenseTrackerScreen extends StatefulWidget {
   final bool isGuest;
+  final String groupId;
 
-  const ExpenseTrackerScreen({Key? key, required this.isGuest}) : super(key: key);
+  const ExpenseTrackerScreen({Key? key, required this.isGuest, required this.groupId}) : super(key: key);
 
   @override
   _ExpenseTrackerScreenState createState() => _ExpenseTrackerScreenState();
 }
 
 class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
+  Future<void> _addExpense(String category, int amount) async {
+    if (!widget.isGuest) {
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('expenses')
+          .add({'category': category, 'amount': amount});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,7 +29,11 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
         title: const Text('Expense Tracker'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('expense_tracker').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .collection('expenses')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -41,7 +56,12 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
                   icon: Icon(Icons.delete),
                   onPressed: () {
                     if (!widget.isGuest) {
-                      FirebaseFirestore.instance.collection('expense_tracker').doc(document.id).delete();
+                      FirebaseFirestore.instance
+                          .collection('groups')
+                          .doc(widget.groupId)
+                          .collection('expenses')
+                          .doc(document.id)
+                          .delete();
                     }
                   },
                 ),
@@ -50,12 +70,59 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
           );
         },
       ),
-      floatingActionButton: widget.isGuest ? null : FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/add-expense');
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: widget.isGuest
+          ? null
+          : FloatingActionButton(
+              onPressed: () {
+                _showAddExpenseDialog(context);
+              },
+              child: const Icon(Icons.add),
+            ),
+    );
+  }
+
+  void _showAddExpenseDialog(BuildContext context) {
+    final TextEditingController categoryController = TextEditingController();
+    final TextEditingController amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Expense'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(labelText: 'Category'),
+              ),
+              TextField(
+                controller: amountController,
+                decoration: const InputDecoration(labelText: 'Amount'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final category = categoryController.text;
+                final amount = int.tryParse(amountController.text) ?? 0;
+                if (category.isNotEmpty && amount > 0) {
+                  _addExpense(category, amount);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

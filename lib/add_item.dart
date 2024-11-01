@@ -3,8 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddItemScreen extends StatelessWidget {
   final String collectionName;
+  final String groupId;
 
-  const AddItemScreen({super.key, required this.collectionName});
+  const AddItemScreen({
+    super.key,
+    required this.collectionName,
+    required this.groupId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +54,11 @@ class AddItemScreen extends StatelessWidget {
                       'quantity': quantityController.text,
                     };
                   }
-                  await FirebaseFirestore.instance.collection(collectionName).add(data);
+                  await FirebaseFirestore.instance
+                      .collection('groups')
+                      .doc(groupId)
+                      .collection(collectionName)
+                      .add(data);
                   Navigator.pop(context);
                 }
               },

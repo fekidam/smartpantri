@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'data.dart';
+import 'package:smartpantri/data.dart';
+import 'expense_tracker.dart';
+import 'fridge_items.dart';
+import 'shopping_lists.dart';
 
 class GroupDetailScreen extends StatelessWidget {
   final Group group;
@@ -16,21 +19,45 @@ class GroupDetailScreen extends StatelessWidget {
       body: ListView(
         children: [
           ListTile(
-            title: const Text('Shopping Lists'),
+            title: const Text("Expense Tracker"),
             onTap: () {
-              Navigator.pushNamed(context, '/shopping-lists');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ExpenseTrackerScreen(
+                    isGuest: false,
+                    groupId: group.id,
+                  ),
+                ),
+              );
             },
           ),
           ListTile(
-            title: const Text('Expenses'),
+            title: const Text("What's in the Fridge"),
             onTap: () {
-              Navigator.pushNamed(context, '/expenses');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FridgeItemsScreen(
+                    isGuest: false,
+                    groupId: group.id,
+                  ),
+                ),
+              );
             },
           ),
           ListTile(
-            title: const Text('What\'s in the Fridge'),
+            title: const Text("Shopping List"),
             onTap: () {
-              Navigator.pushNamed(context, '/fridge-items');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ShoppingListScreen(
+                    isGuest: false,
+                    groupId: group.id,
+                  ),
+                ),
+              );
             },
           ),
         ],

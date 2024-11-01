@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   final bool isGuest;
+  final String groupId;
 
-  const ShoppingListScreen({super.key, required this.isGuest});
+  const ShoppingListScreen({super.key, required this.isGuest, required this.groupId});
 
   @override
   _ShoppingListScreenState createState() => _ShoppingListScreenState();
@@ -48,7 +49,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         title: const Text('Shopping List'),
         actions: [
           IconButton(
-            icon: Icon(showSearchBar ? Icons.close : Icons.add),
+            icon: Icon(showSearchBar ? Icons.close : Icons.search),
             onPressed: () {
               setState(() {
                 showSearchBar = !showSearchBar;

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:smartpantri/data.dart';
 import 'groups.dart';
-import 'data.dart';
+import 'group_detail.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key, required bool isGuest}) : super(key: key);
+  final bool isGuest;
+
+  const HomeScreen({Key? key, required this.isGuest}) : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -15,12 +18,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
 
   Stream<List<Group>> _fetchGroups() {
-    if (user == null) {
-      return Stream.value([]);
-    }
     return FirebaseFirestore.instance
         .collection('groups')
-        .where('userId', isEqualTo: user!.uid)
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
@@ -51,7 +50,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   backgroundColor: Color(int.parse('0xFF${group.color}')),
                 ),
                 onTap: () {
-                  // Navigate to Group details
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GroupDetailScreen(group: group),
+                    ),
+                  );
                 },
               );
             }).toList(),

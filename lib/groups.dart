@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'data.dart';
+import 'group_detail.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({Key? key}) : super(key: key);
@@ -25,29 +26,55 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   ];
 
   Future<void> _saveGroup() async {
-  if (_nameController.text.isNotEmpty) {
-    String colorHex = _selectedColor.value.toRadixString(16).substring(2);
-    User? user = FirebaseAuth.instance.currentUser;
+    if (_nameController.text.isNotEmpty) {
+      String colorHex = _selectedColor.value.toRadixString(16).substring(2);
+      User? user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
-      Group newGroup = Group(
-        id: '',
-        name: _nameController.text,
-        color: colorHex,
-        userId: user.uid, // Ensure this is the actual UID of the current user
-      );
+      if (user != null) {
+        // Létrehoz egy új csoport objektumot az aktuális felhasználó azonosítójával
+        Group newGroup = Group(
+          id: '', // Az ID-t a Firestore automatikusan generálja
+          name: _nameController.text,
+          color: colorHex,
+          userId: user.uid,
+        );
 
-      await FirebaseFirestore.instance.collection('groups').add(newGroup.toJson());
-      Navigator.pop(context);
+        try {
+          // Hozzáadja az új csoportot a Firestore 'groups' kollekciójához
+          DocumentReference docRef = await FirebaseFirestore.instance.collection('groups').add(newGroup.toJson());
+          String groupId = docRef.id;
+
+          // Átnavigál a létrehozott csoport részletező képernyőjére
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => GroupDetailScreen(
+                group: Group(
+                  id: groupId,
+                  name: _nameController.text,
+                  color: colorHex,
+                  userId: user.uid,
+                ),
+              ),
+            ),
+          );
+        } catch (e) {
+          print('Error creating group: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to create group. Please try again.")),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User not logged in")),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User not logged in")),
+        const SnackBar(content: Text("Please enter a group name.")),
       );
     }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {

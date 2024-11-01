@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class FridgeItemsScreen extends StatefulWidget {
   final bool isGuest;
+  final String groupId;
 
-  const FridgeItemsScreen({Key? key, required this.isGuest}) : super(key: key);
+  const FridgeItemsScreen({Key? key, required this.isGuest, required this.groupId}) : super(key: key);
 
   @override
   _FridgeItemsScreenState createState() => _FridgeItemsScreenState();
@@ -14,27 +14,16 @@ class FridgeItemsScreen extends StatefulWidget {
 class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
   @override
   Widget build(BuildContext context) {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (!widget.isGuest && user == null) {
-      return const Center(child: Text('Please log in to view what\'s in the fridge.'));
-    }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('What\'s in the Fridge?'),
-        actions: widget.isGuest
-            ? []
-            : [
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.pushReplacementNamed(context, '/');
-                  },
-                ),
-              ],
+        title: const Text("What's in the Fridge?"),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('fridge_items').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .collection('fridge_items')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -55,7 +44,12 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                     : IconButton(
                         icon: const Icon(Icons.delete),
                         onPressed: () async {
-                          await FirebaseFirestore.instance.collection('fridge_items').doc(documents[index].id).delete();
+                          await FirebaseFirestore.instance
+                              .collection('groups')
+                              .doc(widget.groupId)
+                              .collection('fridge_items')
+                              .doc(documents[index].id)
+                              .delete();
                         },
                       ),
               );
@@ -67,7 +61,11 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
           ? null
           : FloatingActionButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/add-fridge-item');
+                Navigator.pushNamed(
+                  context,
+                  '/add-fridge-item',
+                  arguments: {'groupId': widget.groupId},
+                );
               },
               child: const Icon(Icons.add),
             ),
