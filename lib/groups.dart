@@ -5,7 +5,7 @@ import 'data.dart';
 import 'group_detail.dart';
 
 class CreateGroupScreen extends StatefulWidget {
-  const CreateGroupScreen({Key? key}) : super(key: key);
+  const CreateGroupScreen({super.key});
 
   @override
   _CreateGroupScreenState createState() => _CreateGroupScreenState();

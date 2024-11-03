@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:smartpantri/data.dart';
-import 'groups.dart';
+import 'package:smartpantri/groups.dart';
+import 'data.dart';
 import 'group_detail.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isGuest;
 
-  const HomeScreen({Key? key, required this.isGuest}) : super(key: key);
+  const HomeScreen({super.key, required this.isGuest});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -18,14 +18,112 @@ class _HomeScreenState extends State<HomeScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
 
   Stream<List<Group>> _fetchGroups() {
+    if (user == null) {
+      return Stream.value([]);
+    }
     return FirebaseFirestore.instance
         .collection('groups')
+        .where('userId', isEqualTo: user!.uid)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return Group.fromJson(doc.id, doc.data() as Map<String, dynamic>);
-          }).toList();
-        });
+      return snapshot.docs.map((doc) {
+        return Group.fromJson(doc.id, doc.data());
+      }).toList();
+    });
+  }
+
+  Future<void> _showEditGroupDialog(Group group) async {
+    TextEditingController nameController = TextEditingController(text: group.name);
+    Color selectedColor = Color(int.parse('0xFF${group.color}'));
+    final List<Color> colorOptions = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.red,
+      Colors.teal,
+      Colors.yellow,
+      Colors.pink,
+    ];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Group'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Group Name'),
+              ),
+              const SizedBox(height: 10),
+              const Text('Select Color'),
+              Wrap(
+                spacing: 10,
+                children: colorOptions.map((color) {
+                  bool isSelected = selectedColor == color;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedColor = color;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? Colors.white : Colors.transparent,
+                          width: 3,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.5),
+                                  spreadRadius: 3,
+                                  blurRadius: 5,
+                                ),
+                              ]
+                            : [],
+                      ),
+                      child: CircleAvatar(
+                        backgroundColor: color,
+                        radius: 20,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.isNotEmpty) {
+                  String colorHex = selectedColor.value.toRadixString(16).substring(2);
+                  await FirebaseFirestore.instance.collection('groups').doc(group.id).update({
+                    'name': nameController.text,
+                    'color': colorHex,
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteGroup(Group group) async {
+    await FirebaseFirestore.instance.collection('groups').doc(group.id).delete();
   }
 
   @override
@@ -48,6 +146,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text(group.name),
                 leading: CircleAvatar(
                   backgroundColor: Color(int.parse('0xFF${group.color}')),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () => _showEditGroupDialog(group),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteGroup(group),
+                    ),
+                  ],
                 ),
                 onTap: () {
                   Navigator.push(

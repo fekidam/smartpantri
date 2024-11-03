@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -11,6 +11,11 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool openLastUsedAtLaunch = true;
   bool keepScreenOn = false;
+
+  void _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushReplacementNamed(context, '/login');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +83,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   keepScreenOn = value;
                 });
               },
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _signOut,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
+              child: const Text('Log out'),
             ),
           ],
         ),

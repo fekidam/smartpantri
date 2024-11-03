@@ -12,7 +12,7 @@ class LoginScreen extends StatefulWidget {
     TextEditingController emailController = TextEditingController();
     TextEditingController passwordController = TextEditingController();
     String? errorMessage;
-    
+    bool _obscurePassword = true;
 
  Future<void> login() async {
   try {
@@ -80,16 +80,27 @@ class LoginScreen extends StatefulWidget {
             const SizedBox(height: 20),
             TextFormField(
               controller: passwordController,
-              obscureText: true,
+              obscureText: _obscurePassword,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Password',
-                hintStyle: TextStyle(color: Colors.white70),
-                enabledBorder: OutlineInputBorder(
+                hintStyle: const TextStyle(color: Colors.white70),
+                enabledBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.green, width: 1),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: Colors.green, width: 2),
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white70,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
                 ),
               ),
               onFieldSubmitted: (_) => login(),

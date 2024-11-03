@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 class AllergySelectionScreen extends StatefulWidget {
   final List<String> selectedAllergies;
 
-  const AllergySelectionScreen({Key? key, required this.selectedAllergies})
-      : super(key: key);
+  const AllergySelectionScreen({super.key, required this.selectedAllergies});
 
   @override
   _AllergySelectionScreenState createState() => _AllergySelectionScreenState();

@@ -5,7 +5,7 @@ class FridgeItemsScreen extends StatefulWidget {
   final bool isGuest;
   final String groupId;
 
-  const FridgeItemsScreen({Key? key, required this.isGuest, required this.groupId}) : super(key: key);
+  const FridgeItemsScreen({super.key, required this.isGuest, required this.groupId});
 
   @override
   _FridgeItemsScreenState createState() => _FridgeItemsScreenState();

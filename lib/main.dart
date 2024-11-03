@@ -105,7 +105,7 @@ class AuthCheck extends StatelessWidget {
   final Function(bool) setGuestMode;
   final bool isGuestMode;
 
-  const AuthCheck({Key? key, required this.setGuestMode, required this.isGuestMode}) : super(key: key);
+  const AuthCheck({super.key, required this.setGuestMode, required this.isGuestMode});
 
   @override
   Widget build(BuildContext context) {

@@ -1,66 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:smartpantri/data.dart';
-import 'expense_tracker.dart';
-import 'fridge_items.dart';
-import 'shopping_lists.dart';
+import 'group_home.dart';
+import 'recipe_suggestions.dart';
+import 'chat_screen.dart';
+import 'notifications.dart';
+import 'settings.dart';
 
-class GroupDetailScreen extends StatelessWidget {
+class GroupDetailScreen extends StatefulWidget {
   final Group group;
 
-  const GroupDetailScreen({Key? key, required this.group}) : super(key: key);
+  const GroupDetailScreen({super.key, required this.group});
+
+  @override
+  _GroupDetailScreenState createState() => _GroupDetailScreenState();
+}
+
+class _GroupDetailScreenState extends State<GroupDetailScreen> {
+  int _selectedIndex = 0;
+
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      GroupHomeScreen(groupId: widget.group.id),
+      const RecipeSuggestionsScreen(),
+      const ChatScreen(),
+      const NotificationsScreen(),
+      const SettingsScreen(),
+    ];
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(group.name),
-        backgroundColor: Color(int.parse('0xFF${group.color}')),
+        title: Text(widget.group.name),
+        backgroundColor: Color(int.parse('0xFF${widget.group.color}')),
       ),
-      body: ListView(
-        children: [
-          ListTile(
-            title: const Text("Expense Tracker"),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ExpenseTrackerScreen(
-                    isGuest: false,
-                    groupId: group.id,
-                  ),
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("What's in the Fridge"),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FridgeItemsScreen(
-                    isGuest: false,
-                    groupId: group.id,
-                  ),
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text("Shopping List"),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ShoppingListScreen(
-                    isGuest: false,
-                    groupId: group.id,
-                  ),
-                ),
-              );
-            },
-          ),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home, color: Colors.green), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.restaurant_menu, color: Colors.green), label: 'Recipes'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat, color: Colors.green), label: 'Chat'),
+          BottomNavigationBarItem(icon: Icon(Icons.notifications, color: Colors.green), label: 'Notifications'),
+          BottomNavigationBarItem(icon: Icon(Icons.person, color: Colors.green), label: 'Profile'),
         ],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       ),
     );
   }

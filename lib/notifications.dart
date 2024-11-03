@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
+  const NotificationsScreen({super.key});
 
   @override
   _NotificationsScreenState createState() => _NotificationsScreenState();
@@ -30,24 +30,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Wrap(
           children: [
             ListTile(
-              leading: Icon(Icons.shopping_cart),
-              title: Text('Going Shopping'),
+              leading: const Icon(Icons.shopping_cart),
+              title: const Text('Going Shopping'),
               onTap: () {
                 _sendNotification('I am going shopping today.');
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              leading: Icon(Icons.list),
-              title: Text('What\'s Missing?'),
+              leading: const Icon(Icons.list),
+              title: const Text('What\'s Missing?'),
               onTap: () {
                 _sendNotification('What\'s missing from the shopping list?');
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Who\'s Going Shopping?'),
+              leading: const Icon(Icons.person),
+              title: const Text('Who\'s Going Shopping?'),
               onTap: () {
                 _sendNotification('Who\'s going shopping today?');
                 Navigator.pop(context);
@@ -91,7 +91,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showNotificationOptions,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }

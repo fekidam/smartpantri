@@ -5,7 +5,7 @@ class ExpenseTrackerScreen extends StatefulWidget {
   final bool isGuest;
   final String groupId;
 
-  const ExpenseTrackerScreen({Key? key, required this.isGuest, required this.groupId}) : super(key: key);
+  const ExpenseTrackerScreen({super.key, required this.isGuest, required this.groupId});
 
   @override
   _ExpenseTrackerScreenState createState() => _ExpenseTrackerScreenState();
@@ -53,7 +53,7 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
                 title: Text(category),
                 subtitle: Text('\$$amount'),
                 trailing: IconButton(
-                  icon: Icon(Icons.delete),
+                  icon: const Icon(Icons.delete),
                   onPressed: () {
                     if (!widget.isGuest) {
                       FirebaseFirestore.instance
