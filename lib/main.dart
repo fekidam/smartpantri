@@ -11,15 +11,18 @@ import 'screens/homescreen.dart';
 import 'screens/login.dart';
 import 'screens/register.dart';
 import 'screens/verify_email.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
   await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-
   runApp(const MyApp());
 }
 
