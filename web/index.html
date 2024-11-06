@@ -15,10 +15,10 @@
     the `--base-href` argument provided to `flutter build`.
   -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
+  <meta name="google-signin-client_id" content="533680516754-tarc1mubk9q7eu5qk84si0qv6d1hgd8g.apps.googleusercontent.com" />
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -31,8 +31,55 @@
 
   <title>smartpantri</title>
   <link rel="manifest" href="manifest.json">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId: '1098316388571927',
+        cookie: true,
+        xfbml: true,
+        version: 'v12.0'
+      });
+      FB.AppEvents.logPageView();
+    };
+  
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) { return; }
+      js = d.createElement(s); js.id = id;
+      js.src = "https://connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+  </script>
+  <div id="google_sign_in_button"></div>
+  <script>
+    function handleCredentialResponse(response) {
+      window.googleSignInCallback(response.credential);
+    }
+  </script>
+  <script src="main.dart.js" defer></script>
+  <div id="g_id_onload"
+     data-client_id="YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+     data-callback="handleCredentialResponse">
+</div>
+<div class="g_id_signin"
+     data-type="standard"
+     data-size="large"
+     data-theme="outline"
+     data-text="sign_in_with"
+     data-shape="rectangular"
+     data-logo_alignment="left">
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  function handleCredentialResponse(response) {
+    // Dispatch a custom event with the response credential (ID token)
+    window.dispatchEvent(new CustomEvent('google-sign-in', { detail: response.credential }));
+  }
+</script>
 </body>
 </html>

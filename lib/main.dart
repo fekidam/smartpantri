@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'firebase_options.dart';
-import 'welcome_screen.dart';
-import 'homescreen.dart';
-import 'login.dart';
-import 'register.dart';
-import 'verify_email.dart';
-import 'expense_tracker.dart';
-import 'fridge_items.dart';
-import 'shopping_lists.dart';
-import 'add_item.dart';
+import 'package:smartpantri/screens/add_item.dart';
+import 'package:smartpantri/screens/expense_tracker.dart';
+import 'package:smartpantri/screens/fridge_items.dart';
+import 'package:smartpantri/screens/shopping_lists.dart';
+import 'services/firebase_options.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/homescreen.dart';
+import 'screens/login.dart';
+import 'screens/register.dart';
+import 'screens/verify_email.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,10 +47,11 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.green,
         brightness: Brightness.dark,
       ),
-      home: AuthCheck(setGuestMode: setGuestMode, isGuestMode: isGuestMode),
+      home: AuthCheck(setGuestMode: setGuestMode),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
+        '/welcomescreen': (context) => WelcomeScreen(setGuestMode: setGuestMode),
         '/home': (context) => HomeScreen(isGuest: isGuestMode),
         '/verify-email': (context) => const VerifyEmailScreen(),
       },
@@ -103,9 +104,8 @@ class _MyAppState extends State<MyApp> {
 
 class AuthCheck extends StatelessWidget {
   final Function(bool) setGuestMode;
-  final bool isGuestMode;
 
-  const AuthCheck({super.key, required this.setGuestMode, required this.isGuestMode});
+  const AuthCheck({super.key, required this.setGuestMode});
 
   @override
   Widget build(BuildContext context) {
@@ -117,14 +117,11 @@ class AuthCheck extends StatelessWidget {
         }
 
         if (snapshot.hasData && snapshot.data!.emailVerified) {
-          print("User is logged in with UID: ${snapshot.data?.uid}");
-          return HomeScreen(isGuest: isGuestMode);
+          return HomeScreen(isGuest: false);
         } else if (snapshot.hasData && !snapshot.data!.emailVerified) {
-          print("User is logged in but email not verified.");
           return const VerifyEmailScreen();
         }
 
-        print("No user logged in.");
         return WelcomeScreen(setGuestMode: setGuestMode);
       },
     );

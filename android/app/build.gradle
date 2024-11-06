@@ -1,45 +1,35 @@
-// Module-level build.gradle file
 plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id 'com.google.gms.google-services'
+    id 'com.google.gms.google-services' // Ensure this plugin is applied at the bottom
 }
 
 android {
-    compileSdkVersion flutter.compileSdkVersion
+    compileSdkVersion 34 // Replace `flutter.compileSdkVersion` with the actual number if not set elsewhere
 
     defaultConfig {
         applicationId "com.example.smartpantri"
-        minSdkVersion flutter.minSdkVersion
-        targetSdkVersion flutter.targetSdkVersion
-        versionCode 1 // Provide a default value if not set
-        versionName "1.0" // Provide a default value if not set
+        minSdkVersion 23 // Replace `flutter.minSdkVersion` with an actual number if needed
+        targetSdkVersion 33 // Replace `flutter.targetSdkVersion` with an actual number if needed
+        versionCode 1
+        versionName "1.0"
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    // Ensure other configurations are correctly set
+    // Ensure other configurations are correctly set if necessary
 }
-
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:33.1.0')
-    mplementation 'com.google.firebase:firebase-core'
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+    // Firebase core is included in the BOM and does not need a version
+    implementation 'com.google.firebase:firebase-analytics'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    // Add additional Firebase libraries as needed without specifying versions
-    implementation("com.some.dependency:version") {
-    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib'
-    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
-  }
+    // If you don't need the `exclude` block, remove it.
 }
 
-flutter {
-    source "../.."
-}
-
+// Move this line to the end to ensure it runs correctly
 apply plugin: 'com.google.gms.google-services'
-
