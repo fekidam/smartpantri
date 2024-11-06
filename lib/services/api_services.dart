@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class APIService {
-  static const String _baseUrl = 'api.spoonacular.com';
-  static const String _apiKey = 'ecd59cba2ae2429baa2a4186b108b23e'; // Replace with your actual API key
+  static final String _baseUrl = 'api.spoonacular.com';
+  static final String _apiKey = dotenv.env['SPOONACULAR_API_KEY'] ?? '';
 
   Future<List<Map<String, dynamic>>> fetchRecipes(List<String> intolerances, {String diet = ''}) async {
     final queryParameters = {
@@ -26,4 +27,3 @@ class APIService {
     }
   }
 }
-

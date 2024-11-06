@@ -29,6 +29,7 @@ dependencies:
   cached_network_image: ^3.2.1
   dio: ^5.7.0
   path_provider: ^2.0.0
+  flutter_dotenv: ^5.0.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

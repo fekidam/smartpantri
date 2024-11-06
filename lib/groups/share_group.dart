@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:smartpantri/services/email_service.dart';
 
 class ShareGroupScreen extends StatefulWidget {
   final String groupId;
@@ -15,8 +14,6 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
   final TextEditingController emailController = TextEditingController();
   String? message;
 
-  final EmailService emailService = EmailService(); // Initialize EmailService
-
   Future<void> _shareGroup() async {
     final email = emailController.text.trim().toLowerCase();
 
@@ -28,7 +25,7 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
     }
 
     try {
-      // Look up the user by email in Firestore
+      // Felhasználó keresése e-mail alapján a Firestore-ban
       final userSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .where('email', isEqualTo: email)
@@ -41,7 +38,7 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
         return;
       }
 
-      // Add the user to the group's 'sharedWith' array
+      // Felhasználó hozzáadása a csoport "sharedWith" tömbjéhez
       final userId = userSnapshot.docs.first.id;
       await FirebaseFirestore.instance
           .collection('groups')
@@ -50,11 +47,8 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
         'sharedWith': FieldValue.arrayUnion([userId])
       });
 
-      // Send the invite email
-      await emailService.sendInviteEmail(email, 'Your Group Name');
-
       setState(() {
-        message = 'Group shared and email invitation sent!';
+        message = 'Group shared successfully!';
       });
     } catch (e) {
       setState(() {
