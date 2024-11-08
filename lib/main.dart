@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,7 +17,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load();
+if (!kIsWeb) {
+    await dotenv.load(fileName: "apikeys.env");
+  }
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -50,7 +53,7 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.green,
         brightness: Brightness.dark,
       ),
-      home: AuthCheck(setGuestMode: setGuestMode),
+      home: const SplashScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
@@ -101,6 +104,35 @@ class _MyAppState extends State<MyApp> {
             return null;
         }
       },
+    );
+  }
+}
+
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => AuthCheck(setGuestMode: (bool isGuest) {}),
+        ),
+      );
+    });
+
+    return Scaffold(
+      backgroundColor: Colors.green,
+      body: Center(
+        child: Text(
+          'SmartPantri',
+          style: TextStyle(
+            fontSize: 28,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 }
