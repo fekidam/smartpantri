@@ -16,21 +16,46 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> login() async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+      final email = emailController.text.trim();
+      final password = passwordController.text.trim();
 
-      if (userCredential.user != null) {
+      if (email.isEmpty || password.isEmpty) {
+        setState(() {
+          errorMessage = 'Kérlek, töltsd ki mindkét mezőt!';
+        });
+        return;
+      }
+
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      if (userCredential.user != null && userCredential.user!.emailVerified) {
         Navigator.pushReplacementNamed(context, '/home');
+      } else if (userCredential.user != null &&
+          !userCredential.user!.emailVerified) {
+        setState(() {
+          errorMessage = 'Kérlek, erősítsd meg az email címedet a belépéshez.';
+        });
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        errorMessage = 'Login error: ${e.message}';
+        switch (e.code) {
+          case 'user-not-found':
+            errorMessage = 'Felhasználó nem található.';
+            break;
+          case 'wrong-password':
+            errorMessage = 'Hibás jelszó.';
+            break;
+          case 'invalid-email':
+            errorMessage = 'Érvénytelen email cím.';
+            break;
+          default:
+            errorMessage = 'Bejelentkezési hiba: ${e.message}';
+        }
       });
     } catch (e) {
       setState(() {
-        errorMessage = 'Login error: $e';
+        errorMessage = 'Bejelentkezési hiba: $e';
       });
     }
   }
@@ -111,7 +136,10 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: () {
                 Navigator.pushNamed(context, '/register');
               },
-              child: const Text('Don\'t have an account? Register', style: TextStyle(color: Colors.white70)),
+              child: const Text(
+                'Don\'t have an account? Register',
+                style: TextStyle(color: Colors.white70),
+              ),
             ),
           ],
         ),

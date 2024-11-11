@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+
 class ShoppingItem {
   String name;
   int quantity;
@@ -33,6 +36,7 @@ class Group {
     this.sharedWith = const [],
   });
 
+  // Convert Group instance to a map for Firestore
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -42,6 +46,7 @@ class Group {
     };
   }
 
+  // Create a Group instance from JSON data
   factory Group.fromJson(String id, Map<String, dynamic> json) {
     return Group(
       id: id,
@@ -51,8 +56,16 @@ class Group {
       sharedWith: List<String>.from(json['sharedWith'] ?? []),
     );
   }
+
+  // Create a Group instance directly from Firestore DocumentSnapshot
+  factory Group.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Group(
+      id: doc.id,
+      name: data['name'] ?? '',
+      color: data['color'] ?? 'FFFFFF', // default color if none provided
+      userId: data['userId'] ?? '',
+      sharedWith: List<String>.from(data['sharedWith'] ?? []),
+    );
+  }
 }
-
-
-
-

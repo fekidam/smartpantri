@@ -23,7 +23,7 @@ dependencies:
   json_annotation: ^4.0.1
   flutter_html: ^3.0.0-beta.2
   google_sign_in: ^6.2.1
-  google_sign_in_web: 0.12.4+2
+  google_sign_in_web: ^0.12.4+3
   flutter_facebook_auth: ^7.1.1
   firebase_storage: ^12.3.4
   cached_network_image: ^3.2.1
@@ -37,6 +37,8 @@ dev_dependencies:
  
 flutter:
   uses-material-design: true
+  assets:
+    - apikeys.env
 
 
   # Example of how to add fonts (currently commented out)

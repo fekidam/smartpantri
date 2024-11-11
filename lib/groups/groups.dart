@@ -116,7 +116,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             const Spacer(),
             ElevatedButton(
               onPressed: _saveGroup,
-              child: const Text("Save Group"),
+              child: const Text("Add Group"),
             ),
           ],
         ),

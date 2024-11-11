@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smartpantri/groups/group_home.dart';
+import 'package:smartpantri/screens/homescreen.dart';
 import 'package:smartpantri/models/data.dart';
 import 'package:smartpantri/screens/chat_screen.dart';
 import 'package:smartpantri/screens/notifications.dart';
