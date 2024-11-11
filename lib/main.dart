@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,7 +7,7 @@ import 'package:smartpantri/screens/fridge_items.dart';
 import 'package:smartpantri/screens/shopping_lists.dart';
 import 'services/firebase_options.dart';
 import 'screens/welcome_screen.dart';
-import 'screens/homescreen.dart';
+import 'groups/group_home.dart';
 import 'screens/login.dart';
 import 'screens/register.dart';
 import 'screens/verify_email.dart';
@@ -16,10 +15,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-if (!kIsWeb) {
-    await dotenv.load(fileName: "apikeys.env");
-  }
+  await dotenv.load(fileName: "apikeys.env");  
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -109,7 +105,7 @@ class _MyAppState extends State<MyApp> {
 }
 
 class SplashScreen extends StatelessWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

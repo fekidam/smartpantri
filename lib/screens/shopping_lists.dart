@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   final bool isGuest;
@@ -17,35 +19,44 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final TextEditingController searchController = TextEditingController();
   final List<String> units = ['kg', 'g', 'pcs', 'liters'];
   String selectedUnit = 'kg';
-
-  List<Map<String, dynamic>> availableProducts = [
-    {'name': 'Apples'}, {'name': 'Bananas'}, {'name': 'Strawberries'},
-    {'name': 'Avocados'}, {'name': 'Bell Peppers'}, {'name': 'Carrots'},
-    {'name': 'Broccoli'}, {'name': 'Garlic'}, {'name': 'Lemons/Limes'},
-    {'name': 'Onion'}, {'name': 'Parsley'}, {'name': 'Cilantro'},
-    {'name': 'Basil'}, {'name': 'Potatoes'}, {'name': 'Spinach'},
-    {'name': 'Tomatoes'}, {'name': 'Breadcrumbs'}, {'name': 'Pasta'},
-    {'name': 'Quinoa'}, {'name': 'Rice'}, {'name': 'Sandwich Bread'},
-    {'name': 'Tortillas'}, {'name': 'Chicken'}, {'name': 'Eggs'},
-    {'name': 'Ground Beef'}, {'name': 'Sliced Turkey'}, {'name': 'Lunch Meat'},
-    {'name': 'Butter'}, {'name': 'Sliced Cheese'}, {'name': 'Shredded Cheese'},
-    {'name': 'Milk'}, {'name': 'Sour Cream'}, {'name': 'Greek Yogurt'},
-  ];
-
+  List<Map<String, dynamic>> availableProducts = [];
   List<Map<String, dynamic>> cartItems = [];
+  List<Map<String, dynamic>> selectedItems = [];
   bool showSearchBar = false;
 
   @override
   void initState() {
     super.initState();
-    loadCartItems(); // Betöltjük a mentett elemeket
+    loadCartItems();
+    fetchProductsFromFirestore();
+    loadSelectedItems();
+  }
+
+  Future<void> fetchProductsFromFirestore() async {
+    final QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('products').get();
+    final List<Map<String, dynamic>> products = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+
+    setState(() {
+      availableProducts = products;
+    });
   }
 
   void addItemToCart(Map<String, dynamic> item) {
     setState(() {
       cartItems.add({...item, 'quantity': 1, 'unit': selectedUnit});
     });
-    saveCartItems(); // Mentjük az új bevásárlólistát
+    saveCartItems();
+  }
+
+  void toggleItemSelection(Map<String, dynamic> item) {
+    setState(() {
+      if (selectedItems.contains(item)) {
+        selectedItems.remove(item);
+      } else {
+        selectedItems.add(item);
+      }
+    });
+    saveSelectedItems();
   }
 
   void editCartItem(int index, int newQuantity, String newUnit) {
@@ -53,25 +64,25 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       cartItems[index]['quantity'] = newQuantity;
       cartItems[index]['unit'] = newUnit;
     });
-    saveCartItems(); // Mentjük a módosított bevásárlólistát
+    saveCartItems();
   }
 
   void removeCartItem(int index) {
     setState(() {
       cartItems.removeAt(index);
     });
-    saveCartItems(); // Mentjük a frissített bevásárlólistát
+    saveCartItems();
   }
 
   Future<void> saveCartItems() async {
     final prefs = await SharedPreferences.getInstance();
     final cartItemsJson = jsonEncode(cartItems);
-    await prefs.setString('cartItems', cartItemsJson);
+    await prefs.setString('cartItems_${widget.groupId}', cartItemsJson);
   }
 
   Future<void> loadCartItems() async {
     final prefs = await SharedPreferences.getInstance();
-    final cartItemsJson = prefs.getString('cartItems');
+    final cartItemsJson = prefs.getString('cartItems_${widget.groupId}');
     if (cartItemsJson != null) {
       setState(() {
         cartItems = List<Map<String, dynamic>>.from(jsonDecode(cartItemsJson));
@@ -79,8 +90,46 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
+  Future<void> saveSelectedItems() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+
+      await docRef.set({
+        'items': selectedItems.map((item) => {'name': item['name'], 'quantity': item['quantity'], 'unit': item['unit']}).toList()
+      }, SetOptions(merge: true));
+    }
+  }
+
+  Future<void> loadSelectedItems() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docRef = await FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid).get();
+      final data = docRef.data();
+      if (data != null && data.containsKey('items')) {
+        setState(() {
+          selectedItems = List<Map<String, dynamic>>.from(data['items']);
+        });
+      }
+    }
+  }
+
+  Future<void> addCustomProduct(String name) async {
+    final newItem = {'name': name, 'unit': selectedUnit};
+    setState(() {
+      availableProducts.add(newItem);
+      addItemToCart(newItem);
+    });
+    await FirebaseFirestore.instance.collection('products').add(newItem);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filteredProducts = availableProducts.where((product) {
+      return searchController.text.isEmpty ||
+          product['name'].toLowerCase().startsWith(searchController.text.toLowerCase());
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Shopping List'),
@@ -114,6 +163,24 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 },
               ),
             ),
+          if (filteredProducts.isEmpty && searchController.text.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  final newProductName = searchController.text.trim();
+                  if (newProductName.isNotEmpty) {
+                    addCustomProduct(newProductName);
+                    searchController.clear();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(100, 40),
+                  textStyle: const TextStyle(fontSize: 14),
+                ),
+                child: const Text('Add New Item'),
+              ),
+            ),
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.all(8.0),
@@ -123,15 +190,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),
-              itemCount: availableProducts.length,
+              itemCount: filteredProducts.length,
               itemBuilder: (context, index) {
-                var product = availableProducts[index];
-                if (searchController.text.isNotEmpty &&
-                    !product['name']
-                        .toLowerCase()
-                        .startsWith(searchController.text.toLowerCase())) {
-                  return Container(); // Csak azokat mutatja, amelyek az első betűre egyeznek
-                }
+                var product = filteredProducts[index];
                 return GestureDetector(
                   onTap: () => addItemToCart(product),
                   child: Card(
@@ -165,6 +226,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               itemCount: cartItems.length,
               itemBuilder: (context, index) {
                 var cartItem = cartItems[index];
+                bool isSelected = selectedItems.contains(cartItem);
+
                 return Dismissible(
                   key: Key(cartItem['name']),
                   onDismissed: (direction) {
@@ -173,8 +236,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   background: Container(color: Colors.red),
                   child: ListTile(
                     title: Text(cartItem['name']),
-                    subtitle: Text(
-                        'Quantity: ${cartItem['quantity']} ${cartItem['unit']}'),
+                    subtitle: Text('Quantity: ${cartItem['quantity']} ${cartItem['unit']}'),
+                    trailing: Checkbox(
+                      value: isSelected,
+                      onChanged: (bool? value) {
+                        toggleItemSelection(cartItem);
+                      },
+                    ),
                     onTap: () {
                       _showEditDialog(index, cartItem);
                     },
