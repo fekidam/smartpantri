@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -41,63 +39,184 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     });
   }
 
-  void addItemToCart(Map<String, dynamic> item) {
-    setState(() {
-      cartItems.add({...item, 'quantity': 1, 'unit': selectedUnit});
-    });
-    saveCartItems();
-  }
-
-  void toggleItemSelection(Map<String, dynamic> item) {
-    setState(() {
-      if (selectedItems.contains(item)) {
-        selectedItems.remove(item);
-      } else {
-        selectedItems.add(item);
-      }
-    });
-    saveSelectedItems();
-  }
-
-  void editCartItem(int index, int newQuantity, String newUnit) {
-    setState(() {
-      cartItems[index]['quantity'] = newQuantity;
-      cartItems[index]['unit'] = newUnit;
-    });
-    saveCartItems();
-  }
-
-  void removeCartItem(int index) {
-    setState(() {
-      cartItems.removeAt(index);
-    });
-    saveCartItems();
-  }
-
-  Future<void> saveCartItems() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cartItemsJson = jsonEncode(cartItems);
-    await prefs.setString('cartItems_${widget.groupId}', cartItemsJson);
-  }
-
-  Future<void> loadCartItems() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cartItemsJson = prefs.getString('cartItems_${widget.groupId}');
-    if (cartItemsJson != null) {
+  void addItemToCart(Map<String, dynamic> item) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final cartItem = {...item, 'quantity': 1, 'unit': selectedUnit};
       setState(() {
-        cartItems = List<Map<String, dynamic>>.from(jsonDecode(cartItemsJson));
+        cartItems.add(cartItem);
       });
+
+      // Save to shopping_lists for the current group
+      final groupRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+      final groupDoc = await groupRef.get();
+
+      if (groupDoc.exists) {
+        final data = groupDoc.data();
+        if (data != null && data.containsKey('items')) {
+          final items = List<Map<String, dynamic>>.from(data['items']);
+          items.add(cartItem);
+          await groupRef.set({'items': items}, SetOptions(merge: true));
+        }
+      } else {
+        await groupRef.set({
+          'items': [cartItem]
+        });
+      }
     }
   }
 
-  Future<void> saveSelectedItems() async {
+  void toggleItemSelection(Map<String, dynamic> item) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final docRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+      final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+      final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
 
-      await docRef.set({
-        'items': selectedItems.map((item) => {'name': item['name'], 'quantity': item['quantity'], 'unit': item['unit']}).toList()
-      }, SetOptions(merge: true));
+      setState(() {
+        if (item['isChecked'] == true) {
+          item['isChecked'] = false;
+          item.remove('selectedBy');
+          selectedItems.remove(item);
+        } else {
+          item['isChecked'] = true;
+          item['selectedBy'] = user.email;
+          selectedItems.add(item);
+        }
+      });
+
+      final groupDoc = await groupDocRef.get();
+      if (groupDoc.exists) {
+        final data = groupDoc.data();
+        if (data != null && data.containsKey('items')) {
+          final items = List<Map<String, dynamic>>.from(data['items']);
+          final itemIndex = items.indexWhere((existingItem) => existingItem['name'] == item['name']);
+
+          if (itemIndex != -1) {
+            items[itemIndex] = item;
+          } else {
+            items.add(item);
+          }
+
+          await groupDocRef.set({'items': items}, SetOptions(merge: true));
+        }
+      }
+
+      final userDoc = await userDocRef.get();
+      if (item['isChecked'] == true) {
+        if (userDoc.exists) {
+          final data = userDoc.data();
+          if (data != null && data.containsKey('items')) {
+            final userItems = List<Map<String, dynamic>>.from(data['items']);
+            final userItemIndex = userItems.indexWhere((existingItem) => existingItem['name'] == item['name']);
+
+            if (userItemIndex != -1) {
+              userItems[userItemIndex] = item;
+            } else {
+              userItems.add(item);
+            }
+
+            await userDocRef.set({'items': userItems}, SetOptions(merge: true));
+          }
+        } else {
+          await userDocRef.set({
+            'items': [item]
+          });
+        }
+      } else {
+        if (userDoc.exists) {
+          final data = userDoc.data();
+          if (data != null && data.containsKey('items')) {
+            final userItems = List<Map<String, dynamic>>.from(data['items']);
+            userItems.removeWhere((existingItem) => existingItem['name'] == item['name']);
+            await userDocRef.set({'items': userItems}, SetOptions(merge: true));
+          }
+        }
+      }
+    }
+  }
+
+  void editCartItem(int index, int newQuantity, String newUnit) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final editedItem = cartItems[index];
+      final updatedItem = {
+        ...editedItem,
+        'quantity': newQuantity,
+        'unit': newUnit,
+      };
+
+      setState(() {
+        cartItems[index] = updatedItem;
+      });
+
+      final groupRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+      final groupDoc = await groupRef.get();
+
+      if (groupDoc.exists) {
+        final data = groupDoc.data();
+        if (data != null && data.containsKey('items')) {
+          final items = List<Map<String, dynamic>>.from(data['items']);
+          final itemIndex = items.indexWhere((item) => item['name'] == editedItem['name']);
+          if (itemIndex != -1) {
+            items[itemIndex] = updatedItem;
+            await groupRef.set({'items': items}, SetOptions(merge: true));
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> removeItem(Map<String, dynamic> item) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    // Törlés a user_shopping_lists kollekcióból
+    final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+    final userDoc = await userDocRef.get();
+
+    if (userDoc.exists) {
+      final userData = userDoc.data();
+      if (userData != null && userData.containsKey('items')) {
+        final userItems = List<Map<String, dynamic>>.from(userData['items']);
+        userItems.removeWhere((existingItem) => existingItem['name'] == item['name']);
+        await userDocRef.set({'items': userItems}, SetOptions(merge: true));
+      }
+    }
+
+    // Törlés a shopping_lists kollekcióból
+    final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+    final groupDoc = await groupDocRef.get();
+
+    if (groupDoc.exists) {
+      final groupData = groupDoc.data();
+      if (groupData != null && groupData.containsKey('items')) {
+        final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
+        groupItems.removeWhere((groupItem) => groupItem['name'] == item['name']);
+        await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
+      }
+    }
+
+    // Helyi állapot frissítése
+    setState(() {
+      cartItems.removeWhere((cartItem) => cartItem['name'] == item['name']);
+    });
+  }
+}
+
+
+
+  Future<void> loadCartItems() async {
+    final docRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+    final doc = await docRef.get();
+
+    if (doc.exists) {
+      final data = doc.data();
+      if (data != null && data.containsKey('items')) {
+        setState(() {
+          cartItems = List<Map<String, dynamic>>.from(data['items']);
+          selectedItems = cartItems.where((item) => item['isChecked'] == true).toList();
+        });
+      }
     }
   }
 
@@ -112,15 +231,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         });
       }
     }
-  }
-
-  Future<void> addCustomProduct(String name) async {
-    final newItem = {'name': name, 'unit': selectedUnit};
-    setState(() {
-      availableProducts.add(newItem);
-      addItemToCart(newItem);
-    });
-    await FirebaseFirestore.instance.collection('products').add(newItem);
   }
 
   @override
@@ -161,24 +271,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 onChanged: (value) {
                   setState(() {});
                 },
-              ),
-            ),
-          if (filteredProducts.isEmpty && searchController.text.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  final newProductName = searchController.text.trim();
-                  if (newProductName.isNotEmpty) {
-                    addCustomProduct(newProductName);
-                    searchController.clear();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(100, 40),
-                  textStyle: const TextStyle(fontSize: 14),
-                ),
-                child: const Text('Add New Item'),
               ),
             ),
           Expanded(
@@ -226,26 +318,27 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               itemCount: cartItems.length,
               itemBuilder: (context, index) {
                 var cartItem = cartItems[index];
-                bool isSelected = selectedItems.contains(cartItem);
+                bool isSelected = cartItem['isChecked'] ?? false;
+                String? selectedBy = cartItem['selectedBy'];
 
                 return Dismissible(
                   key: Key(cartItem['name']),
                   onDismissed: (direction) {
-                    removeCartItem(index);
+                    removeItem(cartItem);
                   },
                   background: Container(color: Colors.red),
                   child: ListTile(
                     title: Text(cartItem['name']),
-                    subtitle: Text('Quantity: ${cartItem['quantity']} ${cartItem['unit']}'),
+                    subtitle: Text(
+                      'Quantity: ${cartItem['quantity']} ${cartItem['unit']}'
+                      '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
+                    ),
                     trailing: Checkbox(
                       value: isSelected,
                       onChanged: (bool? value) {
                         toggleItemSelection(cartItem);
                       },
                     ),
-                    onTap: () {
-                      _showEditDialog(index, cartItem);
-                    },
                   ),
                 );
               },
@@ -253,58 +346,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Future<void> _showEditDialog(int index, Map<String, dynamic> cartItem) async {
-    int quantity = cartItem['quantity'];
-    String unit = cartItem['unit'];
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Edit ${cartItem['name']}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                initialValue: quantity.toString(),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Quantity'),
-                onChanged: (value) {
-                  quantity = int.tryParse(value) ?? quantity;
-                },
-              ),
-              DropdownButtonFormField<String>(
-                value: unit,
-                decoration: const InputDecoration(labelText: 'Unit'),
-                items: units
-                    .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                    .toList(),
-                onChanged: (value) {
-                  unit = value ?? unit;
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                editCartItem(index, quantity, unit);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
