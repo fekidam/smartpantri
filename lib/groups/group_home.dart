@@ -150,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           IconButton(
                             icon: const Icon(Icons.person_add, color: Colors.green),
                             onPressed: () {
-                              Navigator.push(
+                              Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => ShareGroupScreen(groupId: group.id),

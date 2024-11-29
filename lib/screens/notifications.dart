@@ -64,6 +64,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
+        automaticallyImplyLeading: false, // Megakadályozza a nyíl automatikus megjelenését
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('notifications').orderBy('timestamp', descending: true).snapshots(),
@@ -96,3 +97,5 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 }
+
+

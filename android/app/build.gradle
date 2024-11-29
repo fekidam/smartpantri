@@ -2,7 +2,7 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id 'com.google.gms.google-services' // Ensure this plugin is applied at the bottom
+    id 'com.google.gms.google-services' // Ez a plugin maradjon itt
 }
 
 android {
@@ -10,26 +10,31 @@ android {
 
     defaultConfig {
         applicationId "com.example.smartpantri"
-        minSdkVersion 23 // Replace `flutter.minSdkVersion` with an actual number if needed
-        targetSdkVersion 33 // Replace `flutter.targetSdkVersion` with an actual number if needed
+        minSdkVersion 23
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
-    // Ensure other configurations are correctly set if necessary
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(17))
+        }
+    }
 }
 
 dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.5.1')
-    // Firebase core is included in the BOM and does not need a version
     implementation 'com.google.firebase:firebase-analytics'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    // If you don't need the `exclude` block, remove it.
 }
 
-// Move this line to the end to ensure it runs correctly
+// Ez maradjon a fájl végén
 apply plugin: 'com.google.gms.google-services'

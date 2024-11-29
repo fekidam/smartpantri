@@ -24,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
+        automaticallyImplyLeading: false, // Megakadályozza a nyíl automatikus megjelenését
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -31,11 +32,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             user != null
                 ? ListTile(
-                    leading: CircleAvatar(
-                      child: Text(user.email![0].toUpperCase()),
-                    ),
-                    title: Text(user.email!),
-                  )
+              leading: CircleAvatar(
+                child: Text(user.email![0].toUpperCase()),
+              ),
+              title: Text(user.email!),
+            )
                 : Container(),
             const Divider(),
             ListTile(
@@ -87,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _signOut,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text('Log out'),
             ),
           ],
@@ -96,3 +97,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+
+
+

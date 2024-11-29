@@ -65,7 +65,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Image.network(
-                          'http://localhost:3000/fetch-image?url=${Uri.encodeComponent(recipeDetails!['image'])}',
+                          'http://192.168.100.5:3000/fetch-image?url=${Uri.encodeComponent(recipeDetails!['image'])}',
                           width: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 150),

@@ -5,6 +5,7 @@ import 'package:smartpantri/screens/add_item.dart';
 import 'package:smartpantri/screens/expense_tracker.dart';
 import 'package:smartpantri/screens/fridge_items.dart';
 import 'package:smartpantri/screens/shopping_lists.dart';
+import 'package:smartpantri/services/storage_service.dart';
 import 'services/firebase_options.dart';
 import 'screens/welcome_screen.dart';
 import 'groups/group_home.dart';
@@ -15,15 +16,26 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: "apikeys.env");  
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await dotenv.load(fileName: "apikeys.env");
 
-  await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+  print("Firebase alkalmazások száma: ${Firebase.apps.length}");
+  if (Firebase.apps.isEmpty) {
+    print("Inicializálás szükséges.");
+    await Firebase.initializeApp(
+      name: 'smartpantri-dc717',
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("Inicializálás sikeres.");
+  } else {
+    print("Firebase már inicializálva.");
+  }
+
   runApp(const MyApp());
 }
+
+
+
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -97,41 +109,60 @@ class _MyAppState extends State<MyApp> {
               ),
             );
           default:
-            return null;
+            return MaterialPageRoute(
+              builder: (context) => Scaffold(
+                body: Center(child: Text('404: Page not found')),
+              ),
+            );
         }
       },
     );
   }
 }
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => AuthCheck(setGuestMode: (bool isGuest) {}),
-        ),
-      );
-    });
+  _SplashScreenState createState() => _SplashScreenState();
+}
 
+class _SplashScreenState extends State<SplashScreen> {
+  final StorageService _storageService = StorageService();
+  String _imageUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      await Firebase.initializeApp();
+      _imageUrl = await _storageService.getHomePageImageUrl();
+    } catch (e) {
+      print('Initialization error: $e');
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => WelcomeScreen(setGuestMode: (bool isGuest) {}),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.green,
       body: Center(
-        child: Text(
-          'SmartPantri',
-          style: TextStyle(
-            fontSize: 28,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: CircularProgressIndicator(),
       ),
     );
   }
 }
+
 
 class AuthCheck extends StatelessWidget {
   final Function(bool) setGuestMode;

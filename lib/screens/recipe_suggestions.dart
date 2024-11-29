@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:smartpantri/screens/recipe_detail.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:smartpantri/services/api_services.dart';
 
+import 'allergy_selection.dart';
+
 class RecipeSuggestionsScreen extends StatefulWidget {
-  const RecipeSuggestionsScreen({super.key});
+  final bool fromGroupScreen; // Új flag a csoport képernyőhöz való visszanavigáláshoz
+
+  const RecipeSuggestionsScreen({super.key, this.fromGroupScreen = false}); // Alapértelmezett érték false
 
   @override
   _RecipeSuggestionsScreenState createState() => _RecipeSuggestionsScreenState();
@@ -26,33 +31,34 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     setState(() {
       isLoading = true;
     });
-    try {
-      // Fetch recipes from API
-      recipes = await APIService().fetchRecipes(selectedAllergies);
 
-      // Fetch images via your Node.js server
-      List<String> imageUrls = recipes.map((recipe) => 'https://img.spoonacular.com/recipes/${recipe['id']}-312x231.${recipe['imageType']}').toList();
-      final response = await http.post(
-        Uri.parse('http://localhost:3000/load-images'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'images': imageUrls}),
+    try {
+      final queryParameters = {
+        'number': '20', // Több recept betöltése
+        'intolerances': selectedAllergies.join(','), // Allergiák szűrése
+        'addRecipeInformation': 'true',
+        'apiKey': dotenv.env['SPOONACULAR_API_KEY'], // Környezeti változóból az API kulcs
+      };
+
+      final uri = Uri.https(
+        'api.spoonacular.com',
+        '/recipes/complexSearch',
+        queryParameters,
       );
 
-      if (response.statusCode == 200) {
-        final imageData = jsonDecode(response.body)['images'];
-        for (int i = 0; i < recipes.length; i++) {
-          recipes[i]['base64Image'] = imageData[i];
-        }
-      } else {
-        throw Exception('Failed to load images');
-      }
+      final response = await http.get(uri);
 
-      setState(() {
-        recipes.sort((a, b) => a['title'].compareTo(b['title']));
-      });
-    } catch (e) {
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          recipes = List<Map<String, dynamic>>.from(data['results']);
+        });
+      } else {
+        throw Exception('Failed to fetch recipes');
+      }
+    } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching recipes: $e')),
+        SnackBar(content: Text('Error fetching recipes: $error')),
       );
     } finally {
       setState(() {
@@ -61,66 +67,109 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     }
   }
 
+  Future<void> _openAllergySelection() async {
+    final result = await Navigator.push<List<String>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AllergySelectionScreen(
+          selectedAllergies: List.from(selectedAllergies),
+          onSelectionChanged: (updatedAllergies) {},
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        selectedAllergies = result;
+      });
+      _fetchRecipes(); // Frissíti a recepteket az új szűrők alapján
+    }
+  }
+
+  Widget _buildRecipeCard(Map<String, dynamic> recipe) {
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      elevation: 5.0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          recipe['image'] != null
+              ? ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(10.0)),
+            child: Image.network(
+              recipe['image'],
+              height: 150,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          )
+              : const Icon(Icons.broken_image, size: 150),
+          Expanded( // Hozzáadva, hogy a tartalom skálázódjon
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                recipe['title'] ?? 'Unknown Recipe',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            child: SizedBox(
+              width: double.infinity, // Gomb teljes szélességben
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecipeDetailScreen(recipeId: recipe['id']),
+                    ),
+                  );
+                },
+                child: const Text('View Details'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recipe Suggestions'),
+        automaticallyImplyLeading: widget.fromGroupScreen,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: _openAllergySelection,
+          ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : recipes.isEmpty
-              ? const Center(child: Text('No recipes available'))
-              : GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, // Adjust for more/less columns
-                    childAspectRatio: 0.8,
-                  ),
-                  itemCount: recipes.length,
-                  itemBuilder: (context, index) {
-                    final recipe = recipes[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RecipeDetailScreen(recipeId: recipe['id']),
-                          ),
-                        );
-
-                      },
-                      child: Card(
-                        margin: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: recipe['base64Image'] != null
-                                  ? Image.memory(
-                                      base64Decode(recipe['base64Image'].split(',')[1]),
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : const Icon(Icons.broken_image, size: 100),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                recipe['title'] ?? 'Unnamed Recipe',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+          ? const Center(child: Text('No recipes available'))
+          : GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2, // Két oszlopos rácsos megjelenítés
+          childAspectRatio: 0.8,
+        ),
+        itemCount: recipes.length,
+        itemBuilder: (context, index) {
+          final recipe = recipes[index];
+          return _buildRecipeCard(recipe); // Receptkártyák építése
+        },
+      ),
     );
   }
 }

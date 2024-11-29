@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -24,16 +23,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Future<void> _loadHomePageImage() async {
-    String imageUrl = await _storageService.getHomePageImageUrl();
-    setState(() {
-      _imageUrl = imageUrl;
-    });
+    try {
+      String imageUrl = await _storageService.getHomePageImageUrl();
+      setState(() {
+        _imageUrl = imageUrl;
+      });
+    } catch (e) {
+      print('Error loading homepage image: $e');
+    }
   }
 
   Future<void> signInWithGoogle(BuildContext context) async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId: '533680516754-tarc1mubk9q7eu5qk84si0qv6d1hgd8g.apps.googleusercontent.com',
+        clientId: 'YOUR_GOOGLE_CLIENT_ID',
       );
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
@@ -77,14 +80,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             const SizedBox(height: 20),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: _imageUrl,
+              child: _imageUrl.isNotEmpty
+                  ? Image.network(
+                _imageUrl,
+                fit: BoxFit.cover,
                 width: 200,
                 height: 220,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const CircularProgressIndicator(),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
-              ),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                          (loadingProgress.expectedTotalBytes ?? 1)
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.error, color: Colors.red),
+              )
+                  : const CircularProgressIndicator(),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
