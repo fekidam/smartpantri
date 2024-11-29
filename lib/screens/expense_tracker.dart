@@ -15,6 +15,16 @@ class ExpenseTrackerScreen extends StatefulWidget {
 class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
   final ExpenseService _expenseService = ExpenseService();
 
+  void _addExpense(String category, int amount) async {
+    await FirebaseFirestore.instance.collection('expense_tracker').add({
+      'category': category,
+      'amount': amount,
+      'groupId': widget.groupId,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    setState(() {}); // Frissíti a képernyőt
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,7 +38,10 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _expenseService.getExpenses(widget.groupId),
+        stream: FirebaseFirestore.instance
+            .collection('expense_tracker')
+            .where('groupId', isEqualTo: widget.groupId)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -36,7 +49,7 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
           if (snapshot.hasError) {
             return Text('Error: ${snapshot.error}');
           }
-          if (snapshot.data?.docs.isEmpty ?? true) {
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('No expenses found.'));
           }
           return ListView(
@@ -51,12 +64,26 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
                 subtitle: Text('\$$amount'),
                 trailing: widget.isGuest
                     ? null
-                    : IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          _expenseService.deleteExpense(widget.groupId, expenseId);
-                        },
-                      ),
+                    : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () {
+                        _editExpense(context, document.id, category, amount);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        FirebaseFirestore.instance
+                            .collection('expense_tracker')
+                            .doc(expenseId)
+                            .delete();
+                      },
+                    ),
+                  ],
+                ),
               );
             }).toList(),
           );
@@ -65,11 +92,11 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
       floatingActionButton: widget.isGuest
           ? null
           : FloatingActionButton(
-              onPressed: () {
-                _showAddExpenseDialog(context);
-              },
-              child: const Icon(Icons.add),
-            ),
+        onPressed: () {
+          _showAddExpenseDialog(context);
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 
@@ -106,11 +133,55 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
                 final category = categoryController.text;
                 final amount = int.tryParse(amountController.text) ?? 0;
                 if (category.isNotEmpty && amount > 0) {
-                  _expenseService.addExpense(widget.groupId, category, amount);
+                  _addExpense(category, amount);
                   Navigator.pop(context);
                 }
               },
               child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _editExpense(BuildContext context, String docId, String category, int amount) {
+    final TextEditingController categoryController = TextEditingController(text: category);
+    final TextEditingController amountController = TextEditingController(text: amount.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Expense'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(labelText: 'Category'),
+              ),
+              TextField(
+                controller: amountController,
+                decoration: const InputDecoration(labelText: 'Amount'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                FirebaseFirestore.instance.collection('expense_tracker').doc(docId).update({
+                  'category': categoryController.text,
+                  'amount': int.parse(amountController.text),
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
             ),
           ],
         );

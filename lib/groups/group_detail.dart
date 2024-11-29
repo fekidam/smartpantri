@@ -5,6 +5,7 @@ import 'package:smartpantri/screens/chat_screen.dart';
 import 'package:smartpantri/screens/notifications.dart';
 import 'package:smartpantri/screens/recipe_suggestions.dart';
 import 'package:smartpantri/screens/settings.dart';
+
 class GroupDetailScreen extends StatefulWidget {
   final Group group;
 
@@ -25,7 +26,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     _pages = [
       GroupHomeScreen(groupId: widget.group.id),
       const RecipeSuggestionsScreen(),
-      const ChatScreen(),
+      GroupChatScreen(groupId: widget.group.id), // GroupChatScreen with groupId
       const NotificationsScreen(),
       const SettingsScreen(),
     ];

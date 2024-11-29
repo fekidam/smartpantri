@@ -135,75 +135,139 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
-  void editCartItem(int index, int newQuantity, String newUnit) async {
+  Future<void> removeItem(Map<String, dynamic> item) async {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user != null) {
-      final editedItem = cartItems[index];
-      final updatedItem = {
-        ...editedItem,
-        'quantity': newQuantity,
-        'unit': newUnit,
-      };
+      // Törlés a `user_shopping_lists` kollekcióból
+      final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+      final userDoc = await userDocRef.get();
 
-      setState(() {
-        cartItems[index] = updatedItem;
-      });
-
-      final groupRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
-      final groupDoc = await groupRef.get();
-
-      if (groupDoc.exists) {
-        final data = groupDoc.data();
-        if (data != null && data.containsKey('items')) {
-          final items = List<Map<String, dynamic>>.from(data['items']);
-          final itemIndex = items.indexWhere((item) => item['name'] == editedItem['name']);
-          if (itemIndex != -1) {
-            items[itemIndex] = updatedItem;
-            await groupRef.set({'items': items}, SetOptions(merge: true));
-          }
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        if (userData != null && userData.containsKey('items')) {
+          final userItems = List<Map<String, dynamic>>.from(userData['items']);
+          userItems.removeWhere((existingItem) => existingItem['name'] == item['name']);
+          await userDocRef.set({'items': userItems}, SetOptions(merge: true));
         }
       }
+
+      // Törlés a `shopping_lists` kollekcióból
+      final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+      final groupDoc = await groupDocRef.get();
+
+      if (groupDoc.exists) {
+        final groupData = groupDoc.data();
+        if (groupData != null && groupData.containsKey('items')) {
+          final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
+          groupItems.removeWhere((groupItem) => groupItem['name'] == item['name']);
+          await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
+        }
+      }
+
+      // Helyi állapot frissítése
+      setState(() {
+        cartItems.removeWhere((cartItem) => cartItem['name'] == item['name']);
+        selectedItems.removeWhere((selectedItem) => selectedItem['name'] == item['name']);
+      });
     }
   }
 
-  Future<void> removeItem(Map<String, dynamic> item) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    // Törlés a user_shopping_lists kollekcióból
-    final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
-    final userDoc = await userDocRef.get();
+  Future<void> editCartItem(BuildContext context, Map<String, dynamic> item) async {
+    final TextEditingController quantityController = TextEditingController(text: item['quantity'].toString());
+    String selectedUnit = item['unit'];
 
-    if (userDoc.exists) {
-      final userData = userDoc.data();
-      if (userData != null && userData.containsKey('items')) {
-        final userItems = List<Map<String, dynamic>>.from(userData['items']);
-        userItems.removeWhere((existingItem) => existingItem['name'] == item['name']);
-        await userDocRef.set({'items': userItems}, SetOptions(merge: true));
-      }
-    }
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit ${item['name']}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: quantityController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Quantity'),
+              ),
+              DropdownButtonFormField<String>(
+                value: selectedUnit,
+                decoration: const InputDecoration(labelText: 'Unit'),
+                items: units.map((unit) {
+                  return DropdownMenuItem(value: unit, child: Text(unit));
+                }).toList(),
+                onChanged: (value) {
+                  selectedUnit = value!;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  final updatedItem = {
+                    ...item,
+                    'quantity': int.parse(quantityController.text),
+                    'unit': selectedUnit,
+                  };
 
-    // Törlés a shopping_lists kollekcióból
-    final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
-    final groupDoc = await groupDocRef.get();
+                  // Update local state
+                  setState(() {
+                    final cartIndex = cartItems.indexWhere((cartItem) => cartItem['name'] == item['name']);
+                    if (cartIndex != -1) {
+                      cartItems[cartIndex] = updatedItem;
+                    }
+                  });
 
-    if (groupDoc.exists) {
-      final groupData = groupDoc.data();
-      if (groupData != null && groupData.containsKey('items')) {
-        final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
-        groupItems.removeWhere((groupItem) => groupItem['name'] == item['name']);
-        await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
-      }
-    }
+                  // Update Firestore for shopping_lists
+                  final groupDocRef =
+                  FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+                  final groupDoc = await groupDocRef.get();
+                  if (groupDoc.exists) {
+                    final data = groupDoc.data();
+                    if (data != null && data.containsKey('items')) {
+                      final items = List<Map<String, dynamic>>.from(data['items']);
+                      final itemIndex = items.indexWhere((existingItem) => existingItem['name'] == item['name']);
+                      if (itemIndex != -1) {
+                        items[itemIndex] = updatedItem;
+                      }
+                      await groupDocRef.set({'items': items}, SetOptions(merge: true));
+                    }
+                  }
 
-    // Helyi állapot frissítése
-    setState(() {
-      cartItems.removeWhere((cartItem) => cartItem['name'] == item['name']);
-    });
+                  // Update Firestore for user_shopping_lists
+                  final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+                  final userDoc = await userDocRef.get();
+                  if (userDoc.exists) {
+                    final userData = userDoc.data();
+                    if (userData != null && userData.containsKey('items')) {
+                      final userItems = List<Map<String, dynamic>>.from(userData['items']);
+                      final userItemIndex =
+                      userItems.indexWhere((existingItem) => existingItem['name'] == item['name']);
+                      if (userItemIndex != -1) {
+                        userItems[userItemIndex] = updatedItem;
+                      }
+                      await userDocRef.set({'items': userItems}, SetOptions(merge: true));
+                    }
+                  }
+                }
+
+                Navigator.of(context).pop();
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
-}
-
-
 
   Future<void> loadCartItems() async {
     final docRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
@@ -331,8 +395,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     title: Text(cartItem['name']),
                     subtitle: Text(
                       'Quantity: ${cartItem['quantity']} ${cartItem['unit']}'
-                      '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
+                          '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
                     ),
+                    onTap: () => editCartItem(context, cartItem),
                     trailing: Checkbox(
                       value: isSelected,
                       onChanged: (bool? value) {
