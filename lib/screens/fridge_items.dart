@@ -48,7 +48,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
       'unit': unit,
       'createdAt': FieldValue.serverTimestamp(),
     });
-    setState(() {}); // Frissíti a képernyőt
+    setState(() {});
   }
 
   void _editItem(BuildContext context, Map<String, dynamic> item, String docId) {
@@ -143,7 +143,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
             return const Center(child: Text('No items found in the fridge.'));
           }
           final documents = snapshot.data!.docs;
-          return SingleChildScrollView( // Görgethető tartalom
+          return SingleChildScrollView(
             child: Column(
               children: documents.map((doc) {
                 var data = doc.data() as Map<String, dynamic>;

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:smartpantri/screens/homescreen.dart';
 import 'package:smartpantri/models/data.dart';
-import 'package:smartpantri/screens/chat_screen.dart';
 import 'package:smartpantri/screens/notifications.dart';
+import 'package:smartpantri/screens/chat_screen.dart';
 import 'package:smartpantri/screens/recipe_suggestions.dart';
 import 'package:smartpantri/screens/settings.dart';
+
+import '../screens/homescreen.dart';
 
 class GroupDetailScreen extends StatefulWidget {
   final Group group;
@@ -26,8 +27,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     _pages = [
       GroupHomeScreen(groupId: widget.group.id),
       const RecipeSuggestionsScreen(),
-      GroupChatScreen(groupId: widget.group.id), // GroupChatScreen with groupId
-      const NotificationsScreen(),
+      GroupChatScreen(groupId: widget.group.id),
+      NotificationsScreen(groupId: widget.group.id),
       const SettingsScreen(),
     ];
   }

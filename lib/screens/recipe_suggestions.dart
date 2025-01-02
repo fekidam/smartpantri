@@ -3,14 +3,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:smartpantri/screens/recipe_detail.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:smartpantri/services/api_services.dart';
 
 import 'allergy_selection.dart';
 
 class RecipeSuggestionsScreen extends StatefulWidget {
-  final bool fromGroupScreen; // Új flag a csoport képernyőhöz való visszanavigáláshoz
+  final bool fromGroupScreen;
 
-  const RecipeSuggestionsScreen({super.key, this.fromGroupScreen = false}); // Alapértelmezett érték false
+  const RecipeSuggestionsScreen({super.key, this.fromGroupScreen = false});
 
   @override
   _RecipeSuggestionsScreenState createState() => _RecipeSuggestionsScreenState();
@@ -34,10 +33,10 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
 
     try {
       final queryParameters = {
-        'number': '20', // Több recept betöltése
-        'intolerances': selectedAllergies.join(','), // Allergiák szűrése
+        'number': '50',
+        'intolerances': selectedAllergies.join(','),
         'addRecipeInformation': 'true',
-        'apiKey': dotenv.env['SPOONACULAR_API_KEY'], // Környezeti változóból az API kulcs
+        'apiKey': dotenv.env['SPOONACULAR_API_KEY'],
       };
 
       final uri = Uri.https(
@@ -82,7 +81,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
       setState(() {
         selectedAllergies = result;
       });
-      _fetchRecipes(); // Frissíti a recepteket az új szűrők alapján
+      _fetchRecipes();
     }
   }
 
@@ -105,7 +104,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
             ),
           )
               : const Icon(Icons.broken_image, size: 150),
-          Expanded( // Hozzáadva, hogy a tartalom skálázódjon
+          Expanded(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
@@ -122,7 +121,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: SizedBox(
-              width: double.infinity, // Gomb teljes szélességben
+              width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.push(
@@ -161,13 +160,13 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
           ? const Center(child: Text('No recipes available'))
           : GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, // Két oszlopos rácsos megjelenítés
+          crossAxisCount: 2,
           childAspectRatio: 0.8,
         ),
         itemCount: recipes.length,
         itemBuilder: (context, index) {
           final recipe = recipes[index];
-          return _buildRecipeCard(recipe); // Receptkártyák építése
+          return _buildRecipeCard(recipe);
         },
       ),
     );

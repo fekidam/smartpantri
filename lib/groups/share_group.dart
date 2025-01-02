@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'group_home.dart';
 
 class ShareGroupScreen extends StatefulWidget {
   final String groupId;
@@ -25,7 +26,6 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
     }
 
     try {
-      // Felhasználó keresése e-mail alapján a Firestore-ban
       final userSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .where('email', isEqualTo: email)
@@ -38,7 +38,6 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
         return;
       }
 
-      // Felhasználó hozzáadása a csoport "sharedWith" tömbjéhez
       final userId = userSnapshot.docs.first.id;
       await FirebaseFirestore.instance
           .collection('groups')
@@ -60,7 +59,20 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Share Group')),
+      appBar: AppBar(
+        title: const Text('Share Group'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => HomeScreen(isGuest: false),
+              ),
+            );
+          },
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

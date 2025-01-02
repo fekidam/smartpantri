@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:smartpantri/services/storage_service.dart';
 
@@ -36,7 +37,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Future<void> signInWithGoogle(BuildContext context) async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId: 'YOUR_GOOGLE_CLIENT_ID',
+        serverClientId: dotenv.env['GOOGLE_CLIENT_ID'],
       );
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
@@ -58,6 +59,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +99,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
                   );
                 },
-                errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.error, color: Colors.red),
+                errorBuilder: (context, error, stackTrace) => Image.asset(
+                  'assets/family_shopping_image.png',
+                  fit: BoxFit.cover,
+                  width: 200,
+                  height: 220,
+                ),
               )
-                  : const CircularProgressIndicator(),
+                  : Image.asset(
+                'assets/family_shopping_image.png',
+                fit: BoxFit.cover,
+                width: 200,
+                height: 220,
+              ),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

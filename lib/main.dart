@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:smartpantri/screens/add_item.dart';
-import 'package:smartpantri/screens/expense_tracker.dart';
-import 'package:smartpantri/screens/fridge_items.dart';
-import 'package:smartpantri/screens/shopping_lists.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:smartpantri/screens/ai_chat_screen.dart';
+import 'package:smartpantri/screens/chat_screen.dart';
 import 'package:smartpantri/services/storage_service.dart';
 import 'services/firebase_options.dart';
 import 'screens/welcome_screen.dart';
@@ -13,29 +12,28 @@ import 'screens/login.dart';
 import 'screens/register.dart';
 import 'screens/verify_email.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print("Handling a background message: ${message.messageId}");
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: "apikeys.env");
 
-  print("Firebase alkalmazások száma: ${Firebase.apps.length}");
   if (Firebase.apps.isEmpty) {
-    print("Inicializálás szükséges.");
     await Firebase.initializeApp(
       name: 'smartpantri-dc717',
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print("Inicializálás sikeres.");
-  } else {
-    print("Firebase már inicializálva.");
   }
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(const MyApp());
 }
-
-
-
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -54,6 +52,49 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _setupFCM();
+  }
+
+  void _setupFCM() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print("Notification permission granted.");
+    } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+      print("Provisional notification permission granted.");
+    } else {
+      print("Notification permission denied.");
+    }
+
+    String? token = await messaging.getToken();
+    print("FCM Device Token: $token");
+
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null && token != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'fcmToken': token,
+      });
+    }
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("Message received while app is open: ${message.notification?.title}");
+      print("Message body: ${message.notification?.body}");
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print("Notification clicked and app opened: ${message.notification?.title}");
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SmartPantri',
@@ -68,53 +109,8 @@ class _MyAppState extends State<MyApp> {
         '/welcomescreen': (context) => WelcomeScreen(setGuestMode: setGuestMode),
         '/home': (context) => HomeScreen(isGuest: isGuestMode),
         '/verify-email': (context) => const VerifyEmailScreen(),
-      },
-      onGenerateRoute: (settings) {
-        final args = settings.arguments as Map<String, dynamic>?;
-
-        switch (settings.name) {
-          case '/expenses':
-            return MaterialPageRoute(
-              builder: (context) => ExpenseTrackerScreen(
-                isGuest: isGuestMode,
-                groupId: args?['groupId'] ?? '',
-              ),
-            );
-          case '/fridge-items':
-            return MaterialPageRoute(
-              builder: (context) => FridgeItemsScreen(
-                isGuest: isGuestMode,
-                groupId: args?['groupId'] ?? '',
-              ),
-            );
-          case '/shopping-lists':
-            return MaterialPageRoute(
-              builder: (context) => ShoppingListScreen(
-                isGuest: isGuestMode,
-                groupId: args?['groupId'] ?? '',
-              ),
-            );
-          case '/add-expense':
-            return MaterialPageRoute(
-              builder: (context) => AddItemScreen(
-                collectionName: 'expense_tracker',
-                groupId: args?['groupId'] ?? '',
-              ),
-            );
-          case '/add-fridge-item':
-            return MaterialPageRoute(
-              builder: (context) => AddItemScreen(
-                collectionName: 'fridge_items',
-                groupId: args?['groupId'] ?? '',
-              ),
-            );
-          default:
-            return MaterialPageRoute(
-              builder: (context) => Scaffold(
-                body: Center(child: Text('404: Page not found')),
-              ),
-            );
-        }
+        '/group-chat': (context) => GroupChatScreen(groupId: 'groupId1'),
+        '/ai-chat': (context) => const AIChatScreen(),
       },
     );
   }
@@ -159,33 +155,6 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Center(
         child: CircularProgressIndicator(),
       ),
-    );
-  }
-}
-
-
-class AuthCheck extends StatelessWidget {
-  final Function(bool) setGuestMode;
-
-  const AuthCheck({super.key, required this.setGuestMode});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasData && snapshot.data!.emailVerified) {
-          return HomeScreen(isGuest: false);
-        } else if (snapshot.hasData && !snapshot.data!.emailVerified) {
-          return const VerifyEmailScreen();
-        }
-
-        return WelcomeScreen(setGuestMode: setGuestMode);
-      },
     );
   }
 }

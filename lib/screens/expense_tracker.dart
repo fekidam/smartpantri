@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:smartpantri/services/expense_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ExpenseTrackerScreen extends StatefulWidget {
   final bool isGuest;
@@ -13,16 +13,100 @@ class ExpenseTrackerScreen extends StatefulWidget {
 }
 
 class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
-  final ExpenseService _expenseService = ExpenseService();
+  Future<Map<String, dynamic>> calculateMonthlyExpenses() async {
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
 
-  void _addExpense(String category, int amount) async {
-    await FirebaseFirestore.instance.collection('expense_tracker').add({
-      'category': category,
-      'amount': amount,
-      'groupId': widget.groupId,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-    setState(() {}); // Frissíti a képernyőt
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('expense_tracker')
+        .where('groupId', isEqualTo: widget.groupId)
+        .where('createdAt', isGreaterThanOrEqualTo: startOfMonth)
+        .get();
+
+    double totalExpenses = 0.0;
+    Map<String, double> userExpenses = {};
+
+    for (var doc in querySnapshot.docs) {
+      final data = doc.data();
+      final amount = data['amount'] ?? 0.0;
+      final userId = data['userId'] ?? 'unknown';
+
+      final userEmail = await getUserEmail(userId);
+      totalExpenses += amount;
+      userExpenses[userEmail] = (userExpenses[userEmail] ?? 0.0) + amount;
+    }
+
+    return {
+      'totalExpenses': totalExpenses,
+      'userExpenses': userExpenses,
+    };
+  }
+
+  Future<String> getUserEmail(String userId) async {
+    final userDoc =
+    await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    return userDoc.data()?['email'] ?? 'Unknown';
+  }
+
+  Future<Map<String, Map<String, List<Map<String, dynamic>>>>> fetchGroupedData(
+      AsyncSnapshot<QuerySnapshot> snapshot) async {
+    final Map<String, Map<String, List<Map<String, dynamic>>>> groupedData = {};
+
+    for (var doc in snapshot.data!.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final userId = data['userId'] ?? 'Unknown';
+      final userEmail = await getUserEmail(userId);
+      final createdAt = (data['createdAt'] as Timestamp).toDate();
+      final dateKey =
+          '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
+
+      if (!groupedData.containsKey(userEmail)) {
+        groupedData[userEmail] = {};
+      }
+      if (!groupedData[userEmail]!.containsKey(dateKey)) {
+        groupedData[userEmail]![dateKey] = [];
+      }
+      groupedData[userEmail]![dateKey]!.add(data);
+    }
+
+    return groupedData;
+  }
+
+  void _showMonthlySummary() async {
+    final stats = await calculateMonthlyExpenses();
+    final totalExpenses = stats['totalExpenses'];
+    final userExpenses = stats['userExpenses'] as Map<String, double>;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Monthly Summary'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Total Expense: ${totalExpenses.toStringAsFixed(2)} Ft'),
+                const SizedBox(height: 10),
+                const Text('By Users:'),
+                ...userExpenses.entries.map((entry) {
+                  return Text(
+                    '${entry.key}: ${entry.value.toStringAsFixed(2)} Ft',
+                    style: const TextStyle(fontSize: 14),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -52,144 +136,57 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text('No expenses found.'));
           }
-          return ListView(
-            children: snapshot.data!.docs.map((DocumentSnapshot document) {
-              Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-              String category = data['category'] ?? 'Unknown';
-              int amount = data['amount'] ?? 0;
-              String expenseId = document.id;
 
-              return ListTile(
-                title: Text(category),
-                subtitle: Text('\$$amount'),
-                trailing: widget.isGuest
-                    ? null
-                    : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () {
-                        _editExpense(context, document.id, category, amount);
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        FirebaseFirestore.instance
-                            .collection('expense_tracker')
-                            .doc(expenseId)
-                            .delete();
-                      },
-                    ),
-                  ],
-                ),
+          return FutureBuilder<Map<String, Map<String, List<Map<String, dynamic>>>>>(
+            future: fetchGroupedData(snapshot),
+            builder: (context, futureSnapshot) {
+              if (futureSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (futureSnapshot.hasError) {
+                return Text('Error: ${futureSnapshot.error}');
+              }
+              if (!futureSnapshot.hasData) {
+                return const Center(child: Text('No data found.'));
+              }
+
+              final groupedData = futureSnapshot.data!;
+
+              return ListView(
+                children: groupedData.entries.map((userEntry) {
+                  final userEmail = userEntry.key;
+                  final dateEntries = userEntry.value;
+
+                  return ExpansionTile(
+                    title: Text(userEmail),
+                    children: dateEntries.entries.map((dateEntry) {
+                      final date = dateEntry.key;
+                      final items = dateEntry.value;
+
+                      final dailyTotal = items.fold<double>(
+                          0.0, (sum, item) => sum + (item['amount'] ?? 0.0));
+
+                      return ExpansionTile(
+                        title: Text(
+                          '$date - Total: ${dailyTotal.toStringAsFixed(2)} Ft',
+                        ),
+                        children: items.map((item) {
+                          return ListTile(
+                            title: Text(item['category'] ?? 'Unknown'),
+                            subtitle: Text(
+                              'Price: ${(item['amount'] ?? 0.0).toStringAsFixed(2)} Ft',
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }).toList(),
+                  );
+                }).toList(),
               );
-            }).toList(),
+            },
           );
         },
       ),
-      floatingActionButton: widget.isGuest
-          ? null
-          : FloatingActionButton(
-        onPressed: () {
-          _showAddExpenseDialog(context);
-        },
-        child: const Icon(Icons.add),
-      ),
     );
-  }
-
-  void _showAddExpenseDialog(BuildContext context) {
-    final TextEditingController categoryController = TextEditingController();
-    final TextEditingController amountController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Expense'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(labelText: 'Category'),
-              ),
-              TextField(
-                controller: amountController,
-                decoration: const InputDecoration(labelText: 'Amount'),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final category = categoryController.text;
-                final amount = int.tryParse(amountController.text) ?? 0;
-                if (category.isNotEmpty && amount > 0) {
-                  _addExpense(category, amount);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _editExpense(BuildContext context, String docId, String category, int amount) {
-    final TextEditingController categoryController = TextEditingController(text: category);
-    final TextEditingController amountController = TextEditingController(text: amount.toString());
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Expense'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(labelText: 'Category'),
-              ),
-              TextField(
-                controller: amountController,
-                decoration: const InputDecoration(labelText: 'Amount'),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                FirebaseFirestore.instance.collection('expense_tracker').doc(docId).update({
-                  'category': categoryController.text,
-                  'amount': int.parse(amountController.text),
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showMonthlySummary() {
-    // Ide kerülhet a havi összesítés képernyő navigációja, ha később szükséges
   }
 }

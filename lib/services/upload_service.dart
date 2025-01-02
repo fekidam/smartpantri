@@ -19,9 +19,9 @@ class UploadService {
         'profileImageUrl': downloadURL,
       }, SetOptions(merge: true));
 
-      print("Kép sikeresen feltöltve és URL elmentve a Firestore-ba.");
+      print("Image successfully uploaded and URL saved to Firestore.");
     } catch (e) {
-      print("Hiba történt a kép feltöltésekor: $e");
+      print("An error occurred while uploading the image: $e");
     }
   }
 }

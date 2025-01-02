@@ -47,7 +47,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         cartItems.add(cartItem);
       });
 
-      // Save to shopping_lists for the current group
       final groupRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
       final groupDoc = await groupRef.get();
 
@@ -138,7 +137,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Future<void> removeItem(Map<String, dynamic> item) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // Törlés a `user_shopping_lists` kollekcióból
       final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
       final userDoc = await userDocRef.get();
 
@@ -151,7 +149,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         }
       }
 
-      // Törlés a `shopping_lists` kollekcióból
       final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
       final groupDoc = await groupDocRef.get();
 
@@ -164,7 +161,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         }
       }
 
-      // Helyi állapot frissítése
       setState(() {
         cartItems.removeWhere((cartItem) => cartItem['name'] == item['name']);
         selectedItems.removeWhere((selectedItem) => selectedItem['name'] == item['name']);
@@ -218,7 +214,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     'unit': selectedUnit,
                   };
 
-                  // Update local state
                   setState(() {
                     final cartIndex = cartItems.indexWhere((cartItem) => cartItem['name'] == item['name']);
                     if (cartIndex != -1) {
@@ -226,7 +221,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     }
                   });
 
-                  // Update Firestore for shopping_lists
                   final groupDocRef =
                   FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
                   final groupDoc = await groupDocRef.get();
@@ -242,7 +236,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     }
                   }
 
-                  // Update Firestore for user_shopping_lists
                   final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
                   final userDoc = await userDocRef.get();
                   if (userDoc.exists) {
@@ -388,7 +381,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 return Dismissible(
                   key: Key(cartItem['name']),
                   onDismissed: (direction) {
+                    setState(() {
+                      cartItems.removeAt(index);
+                    });
                     removeItem(cartItem);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${cartItem['name']} removed')),
+                    );
                   },
                   background: Container(color: Colors.red),
                   child: ListTile(

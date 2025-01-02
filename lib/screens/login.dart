@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,14 +16,14 @@ class _LoginScreenState extends State<LoginScreen> {
   String? errorMessage;
   bool _obscurePassword = true;
 
-  Future<void> login() async {
+  Future<void> _login() async {
     try {
       final email = emailController.text.trim();
       final password = passwordController.text.trim();
 
       if (email.isEmpty || password.isEmpty) {
         setState(() {
-          errorMessage = 'Kérlek, töltsd ki mindkét mezőt!';
+          errorMessage = 'Please fill in both fields!';
         });
         return;
       }
@@ -29,33 +31,42 @@ class _LoginScreenState extends State<LoginScreen> {
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      if (userCredential.user != null && userCredential.user!.emailVerified) {
+      final User? user = userCredential.user;
+
+      if (user != null && user.emailVerified) {
+        String? token = await FirebaseMessaging.instance.getToken();
+        if (token != null) {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+            'fcmToken': token,
+          });
+          print("FCM token updated successfully: $token");
+        }
+
         Navigator.pushReplacementNamed(context, '/home');
-      } else if (userCredential.user != null &&
-          !userCredential.user!.emailVerified) {
+      } else if (user != null && !user.emailVerified) {
         setState(() {
-          errorMessage = 'Kérlek, erősítsd meg az email címedet a belépéshez.';
+          errorMessage = 'Please verify your email address to log in.';
         });
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
         switch (e.code) {
           case 'user-not-found':
-            errorMessage = 'Felhasználó nem található.';
+            errorMessage = 'User not found.';
             break;
           case 'wrong-password':
-            errorMessage = 'Hibás jelszó.';
+            errorMessage = 'Invalid password.';
             break;
           case 'invalid-email':
-            errorMessage = 'Érvénytelen email cím.';
+            errorMessage = 'Invalid email address.';
             break;
           default:
-            errorMessage = 'Bejelentkezési hiba: ${e.message}';
+            errorMessage = 'Login error: ${e.message}';
         }
       });
     } catch (e) {
       setState(() {
-        errorMessage = 'Bejelentkezési hiba: $e';
+        errorMessage = 'Login error: $e';
       });
     }
   }
@@ -87,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderSide: BorderSide(color: Colors.blue, width: 2),
                 ),
               ),
-              onFieldSubmitted: (_) => login(),
+              onFieldSubmitted: (_) => _login(),
             ),
             const SizedBox(height: 20),
             TextFormField(
@@ -115,11 +126,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
               ),
-              onFieldSubmitted: (_) => login(),
+              onFieldSubmitted: (_) => _login(),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: login,
+              onPressed: _login,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: const Text('Log in'),
             ),

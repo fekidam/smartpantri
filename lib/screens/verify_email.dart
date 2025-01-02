@@ -6,11 +6,11 @@ class VerifyEmailScreen extends StatelessWidget {
 
   Future<void> refreshUserStatus(BuildContext context) async {
     User? user = FirebaseAuth.instance.currentUser;
-    await user?.reload(); // Frissíti a felhasználói adatokat
-    user = FirebaseAuth.instance.currentUser; // Frissített adatokat kér le
+    await user?.reload();
+    user = FirebaseAuth.instance.currentUser;
 
     if (user?.emailVerified ?? false) {
-      Navigator.pushReplacementNamed(context, '/home'); // Navigálj a home képernyőre, ha a megerősítés megtörtént
+      Navigator.pushReplacementNamed(context, '/login');
     } else {
       const snackBar = SnackBar(content: Text('Please verify your email first.'));
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
@@ -20,7 +20,7 @@ class VerifyEmailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
-    user?.sendEmailVerification(); // E-mail megerősítési kérést küld
+    user?.sendEmailVerification();
 
     return Scaffold(
       appBar: AppBar(
@@ -38,7 +38,7 @@ class VerifyEmailScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                await refreshUserStatus(context); // Ellenőrzi az e-mail megerősítést
+                await refreshUserStatus(context);
               },
               child: const Text('I have verified my email'),
             ),
