@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class ExpenseTrackerScreen extends StatefulWidget {
   final bool isGuest;
@@ -94,7 +93,7 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
                     '${entry.key}: ${entry.value.toStringAsFixed(2)} Ft',
                     style: const TextStyle(fontSize: 14),
                   );
-                }).toList(),
+                }),
               ],
             ),
           ),

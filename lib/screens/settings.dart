@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:smartpantri/screens/privacy_settings.dart';
+import 'package:smartpantri/screens/profile_settings.dart';
+import 'package:smartpantri/screens/theme_settings.dart';
+
+import 'languages_settings.dart';
+import 'notifications_settings.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -41,48 +47,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.person),
-              title: const Text('Appearance'),
+              title: const Text('Profile Settings'),
               onTap: () {
-                // Handle appearance settings
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProfileSettingsScreen()),
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.notifications),
               title: const Text('Notifications'),
               onTap: () {
-                // Handle notifications settings
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => NotificationSettingsScreen()),
+                );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.category),
-              title: const Text('Manage categories'),
+              leading: const Icon(Icons.language),
+              title: const Text('Language and Region'),
               onTap: () {
-                // Handle manage categories
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => LanguageRegionSettingsScreen()),
+                );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.bug_report),
-              title: const Text('Report a bug'),
+              leading: const Icon(Icons.security),
+              title: const Text('Privacy and Security'),
               onTap: () {
-                // Handle report a bug
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PrivacySecuritySettingsScreen()),
+                );
               },
             ),
-            SwitchListTile(
-              title: const Text('Open last used at launch'),
-              value: openLastUsedAtLaunch,
-              onChanged: (bool value) {
-                setState(() {
-                  openLastUsedAtLaunch = value;
-                });
-              },
-            ),
-            SwitchListTile(
-              title: const Text('Keep the screen turned on'),
-              value: keepScreenOn,
-              onChanged: (bool value) {
-                setState(() {
-                  keepScreenOn = value;
-                });
+            ListTile(
+              leading: const Icon(Icons.palette),
+              title: const Text("Theme and Appearance"),
+              onTap: (){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ThemeSettingsScreen()),
+                );
               },
             ),
             const SizedBox(height: 20),

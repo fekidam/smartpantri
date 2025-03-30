@@ -42,7 +42,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   void addItemToCart(Map<String, dynamic> item) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final cartItem = {...item, 'quantity': 1, 'unit': selectedUnit};
+      final String itemId = DateTime.now().millisecondsSinceEpoch.toString();
+      final cartItem = {
+        ...item,
+        'id': itemId,
+        'quantity': 1,
+        'unit': selectedUnit,
+        'isChecked': false,
+      };
       setState(() {
         cartItems.add(cartItem);
       });
@@ -75,7 +82,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         if (item['isChecked'] == true) {
           item['isChecked'] = false;
           item.remove('selectedBy');
-          selectedItems.remove(item);
+          selectedItems.removeWhere((selectedItem) => selectedItem['id'] == item['id']);
         } else {
           item['isChecked'] = true;
           item['selectedBy'] = user.email;
@@ -88,7 +95,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         final data = groupDoc.data();
         if (data != null && data.containsKey('items')) {
           final items = List<Map<String, dynamic>>.from(data['items']);
-          final itemIndex = items.indexWhere((existingItem) => existingItem['name'] == item['name']);
+          final itemIndex = items.indexWhere((existingItem) => existingItem['id'] == item['id']);
 
           if (itemIndex != -1) {
             items[itemIndex] = item;
@@ -106,7 +113,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           final data = userDoc.data();
           if (data != null && data.containsKey('items')) {
             final userItems = List<Map<String, dynamic>>.from(data['items']);
-            final userItemIndex = userItems.indexWhere((existingItem) => existingItem['name'] == item['name']);
+            final userItemIndex = userItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
 
             if (userItemIndex != -1) {
               userItems[userItemIndex] = item;
@@ -126,7 +133,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           final data = userDoc.data();
           if (data != null && data.containsKey('items')) {
             final userItems = List<Map<String, dynamic>>.from(data['items']);
-            userItems.removeWhere((existingItem) => existingItem['name'] == item['name']);
+            userItems.removeWhere((existingItem) => existingItem['id'] == item['id']);
             await userDocRef.set({'items': userItems}, SetOptions(merge: true));
           }
         }
@@ -144,7 +151,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         final userData = userDoc.data();
         if (userData != null && userData.containsKey('items')) {
           final userItems = List<Map<String, dynamic>>.from(userData['items']);
-          userItems.removeWhere((existingItem) => existingItem['name'] == item['name']);
+          userItems.removeWhere((existingItem) => existingItem['id'] == item['id']);
           await userDocRef.set({'items': userItems}, SetOptions(merge: true));
         }
       }
@@ -156,14 +163,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         final groupData = groupDoc.data();
         if (groupData != null && groupData.containsKey('items')) {
           final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
-          groupItems.removeWhere((groupItem) => groupItem['name'] == item['name']);
+          groupItems.removeWhere((groupItem) => groupItem['id'] == item['id']);
           await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
         }
       }
 
       setState(() {
-        cartItems.removeWhere((cartItem) => cartItem['name'] == item['name']);
-        selectedItems.removeWhere((selectedItem) => selectedItem['name'] == item['name']);
+        cartItems.removeWhere((cartItem) => cartItem['id'] == item['id']);
+        selectedItems.removeWhere((selectedItem) => selectedItem['id'] == item['id']);
       });
     }
   }
@@ -215,7 +222,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   };
 
                   setState(() {
-                    final cartIndex = cartItems.indexWhere((cartItem) => cartItem['name'] == item['name']);
+                    final cartIndex = cartItems.indexWhere((cartItem) => cartItem['id'] == item['id']);
                     if (cartIndex != -1) {
                       cartItems[cartIndex] = updatedItem;
                     }
@@ -228,7 +235,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     final data = groupDoc.data();
                     if (data != null && data.containsKey('items')) {
                       final items = List<Map<String, dynamic>>.from(data['items']);
-                      final itemIndex = items.indexWhere((existingItem) => existingItem['name'] == item['name']);
+                      final itemIndex = items.indexWhere((existingItem) => existingItem['id'] == item['id']);
                       if (itemIndex != -1) {
                         items[itemIndex] = updatedItem;
                       }
@@ -243,7 +250,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     if (userData != null && userData.containsKey('items')) {
                       final userItems = List<Map<String, dynamic>>.from(userData['items']);
                       final userItemIndex =
-                      userItems.indexWhere((existingItem) => existingItem['name'] == item['name']);
+                      userItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
                       if (userItemIndex != -1) {
                         userItems[userItemIndex] = updatedItem;
                       }
@@ -379,7 +386,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 String? selectedBy = cartItem['selectedBy'];
 
                 return Dismissible(
-                  key: Key(cartItem['name']),
+                  key: Key(cartItem['id'].toString()),
                   onDismissed: (direction) {
                     setState(() {
                       cartItems.removeAt(index);

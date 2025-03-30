@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -15,7 +17,9 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   final StorageService _storageService = StorageService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String _imageUrl = '';
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -36,126 +40,177 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   Future<void> signInWithGoogle(BuildContext context) async {
     try {
+      setState(() {
+        _isLoading = true;
+      });
+
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId: dotenv.env['GOOGLE_CLIENT_ID'],
       );
+
+      await googleSignIn.signOut();
+
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
+      if (googleUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-in cancelled.')),
         );
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
-        if (userCredential.user != null) {
-          Navigator.pushReplacementNamed(context, '/home');
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      User? user = userCredential.user;
+
+      if (user != null) {
+        String? fcmToken;
+        try {
+          fcmToken = await FirebaseMessaging.instance.getToken();
+        } catch (e) {
+          print('Error getting FCM token: $e');
         }
+
+        await _firestore.collection('users').doc(user.uid).set({
+          'birthDate': '',
+          'email': user.email ?? '',
+          'fcmToken': fcmToken ?? '',
+          'firstName': user.displayName?.split(' ').first ?? '',
+          'lastName': (user.displayName != null && user.displayName!.split(' ').length > 1)
+              ? user.displayName?.split(' ').last ?? ''
+              : '',
+          'profilePictureUrl': user.photoURL ?? '',
+        }, SetOptions(merge: true));
+
+        Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Google sign-in error: $e')),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'SmartPantri',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: _imageUrl.isNotEmpty
-                  ? Image.network(
-                _imageUrl,
-                fit: BoxFit.cover,
-                width: 200,
-                height: 220,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                          (loadingProgress.expectedTotalBytes ?? 1)
-                          : null,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.black,
+          body: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                const Text(
+                  'SmartPantri',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: _imageUrl.isNotEmpty
+                      ? Image.network(
+                    _imageUrl,
+                    fit: BoxFit.cover,
+                    width: 200,
+                    height: 220,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                              (loadingProgress.expectedTotalBytes ?? 1)
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                      'assets/family_shopping_image.png',
+                      fit: BoxFit.cover,
+                      width: 200,
+                      height: 220,
                     ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Image.asset(
-                  'assets/family_shopping_image.png',
-                  fit: BoxFit.cover,
-                  width: 200,
-                  height: 220,
+                  )
+                      : Image.asset(
+                    'assets/family_shopping_image.png',
+                    fit: BoxFit.cover,
+                    width: 200,
+                    height: 220,
+                  ),
                 ),
-              )
-                  : Image.asset(
-                'assets/family_shopping_image.png',
-                fit: BoxFit.cover,
-                width: 200,
-                height: 220,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacementNamed('/login');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
-              child: const Text('Log In'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacementNamed('/register');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
-              child: const Text('Register'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () => signInWithGoogle(context),
-              icon: const Icon(Icons.login, color: Colors.white),
-              label: const Text('Continue with Google'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            ),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: () {
-                widget.setGuestMode(true);
-                Navigator.of(context).pushReplacementNamed('/home');
-              },
-              child: const Text(
-                'Continue as Guest',
-                style: TextStyle(
-                  color: Colors.white,
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacementNamed('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  child: const Text('Log In'),
                 ),
-              ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacementNamed('/register');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  child: const Text('Register'),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () => signInWithGoogle(context),
+                  icon: const Icon(Icons.login, color: Colors.white),
+                  label: const Text('Continue with Google'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () {
+                    widget.setGuestMode(true);
+                    Navigator.of(context).pushReplacementNamed('/home');
+                  },
+                  child: const Text(
+                    'Continue as Guest',
+                    style: TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        if (_isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+      ],
     );
   }
 }

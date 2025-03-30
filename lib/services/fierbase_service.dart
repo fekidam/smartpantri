@@ -1,5 +1,4 @@
 import 'package:firebase_admin/firebase_admin.dart';
-import 'dart:io';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();

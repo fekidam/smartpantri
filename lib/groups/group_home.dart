@@ -6,6 +6,7 @@ import 'package:smartpantri/groups/groups.dart';
 import 'package:smartpantri/groups/share_group.dart';
 import '../models/data.dart';
 import 'your_groups.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isGuest;
@@ -37,79 +38,70 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _showEditGroupDialog(Group group) async {
     TextEditingController nameController = TextEditingController(text: group.name);
     Color selectedColor = Color(int.parse('0xFF${group.color}'));
-    final List<Color> colorOptions = [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.red,
-      Colors.teal,
-      Colors.yellow,
-      Colors.pink,
-    ];
 
     await showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Group'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Group Name'),
-              ),
-              const SizedBox(height: 10),
-              const Text('Select Color'),
-              Wrap(
-                spacing: 10,
-                children: colorOptions.map((color) {
-                  bool isSelected = selectedColor == color;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedColor = color;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected ? Colors.white : Colors.transparent,
-                          width: 3,
-                        ),
-                      ),
-                      child: CircleAvatar(
-                        backgroundColor: color,
-                        radius: 20,
-                      ),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Edit Group'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Group Name'),
                     ),
-                  );
-                }).toList(),
+                    const SizedBox(height: 10),
+                    const Text('Group Tag Color'),
+                    const SizedBox(height: 10),
+                    BlockPicker(
+                      pickerColor: selectedColor,
+                      onColorChanged: (color) {
+                        setState(() {
+                          selectedColor = color;
+                        });
+                      },
+                      availableColors: const [
+                        Colors.blue,
+                        Colors.green,
+                        Colors.orange,
+                        Colors.purple,
+                        Colors.red,
+                        Colors.teal,
+                        Colors.yellow,
+                        Colors.pink,
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isNotEmpty) {
-                  String colorHex = selectedColor.value.toRadixString(16).substring(2);
-                  await FirebaseFirestore.instance.collection('groups').doc(group.id).update({
-                    'name': nameController.text,
-                    'color': colorHex,
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.isNotEmpty) {
+                      String colorHex = selectedColor.value.toRadixString(16).substring(2);
+                      await FirebaseFirestore.instance.collection('groups').doc(group.id).update({
+                        'name': nameController.text,
+                        'color': colorHex,
+                      });
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Group updated successfully')),
+                      );
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -117,12 +109,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _deleteGroup(Group group) async {
     await FirebaseFirestore.instance.collection('groups').doc(group.id).delete();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Group deleted')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Your Groups")),
+      appBar: AppBar(
+        title: const Text("Your Groups"),
+        automaticallyImplyLeading: false,
+      ),
       body: Column(
         children: [
           Expanded(

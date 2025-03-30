@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final String groupId;
@@ -55,7 +56,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _sendPushNotification(String token, String message) async {
     try {
       final Uri uri = Uri.parse('https://fcm.googleapis.com/fcm/send');
-      await http.post(
+      final response = await http.post(
         uri,
         headers: {
           'Content-Type': 'application/json',
@@ -67,10 +68,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             'title': 'New Notification',
             'body': message,
           },
+          'data': {
+            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+            'screen': 'notifications',
+            'groupId': widget.groupId,
+          },
         }),
       );
+
+      if (response.statusCode == 200) {
+        print('Push notification sent successfully to token: $token');
+      } else {
+        print('Failed to send push notification: ${response.statusCode} - ${response.body}');
+      }
     } catch (e) {
-      print('Failed to send notification: $e');
+      print('Failed to send push notification: $e');
     }
   }
 
@@ -142,10 +154,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   : null;
 
               return ListTile(
+                leading: const Icon(Icons.notifications, color: Colors.blue),
                 title: Text(data['message'] ?? 'No message'),
-                subtitle: Text(timestamp != null
-                    ? '${timestamp.day}/${timestamp.month}/${timestamp.year}'
-                    : 'No timestamp available'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sender: ${data['sender'] ?? 'Unknown'}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    Text(
+                      timestamp != null
+                          ? DateFormat('yyyy/MM/dd HH:mm').format(timestamp)
+                          : 'No timestamp available',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
               );
             }).toList(),
           );

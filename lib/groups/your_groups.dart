@@ -42,11 +42,13 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
 
   Map<String, dynamic> normalizeItem(Map<String, dynamic> item) {
     return {
+      'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
       'name': item['name'] ?? 'Unknown',
       'quantity': item['quantity'] ?? 0,
       'price': item['price'] ?? 0.0,
       'unit': item['unit'] ?? 'pcs',
       'isChecked': item['isChecked'] ?? false,
+      'isPurchased': item['isPurchased'] ?? false,
       'category': item['category'] ?? 'General',
       'defaultUnit': item['defaultUnit'] ?? 'pcs',
       'selectedBy': item['selectedBy'] ?? FirebaseAuth.instance.currentUser?.email ?? 'unknown',
@@ -68,14 +70,28 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
         if (userData != null && userData.containsKey('items')) {
           final userItems = List<Map<String, dynamic>>.from(userData['items']);
           final index = userItems.indexWhere(
-                  (existingItem) => existingItem['name'] == item['name']);
+                  (existingItem) => existingItem['id'] == item['id']);
 
           if (index != -1) {
-            userItems[index]['isChecked'] = !(userItems[index]['isChecked'] ?? false);
+            userItems[index]['isPurchased'] = !(userItems[index]['isPurchased'] ?? false);
             userItems[index] = normalizeItem(userItems[index]);
             await userDocRef.set({'items': userItems}, SetOptions(merge: true));
 
-            if (userItems[index]['isChecked'] == true) {
+            final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(groupId);
+            final groupDoc = await groupDocRef.get();
+            if (groupDoc.exists) {
+              final groupData = groupDoc.data();
+              if (groupData != null && groupData.containsKey('items')) {
+                final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
+                final groupItemIndex = groupItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
+                if (groupItemIndex != -1) {
+                  groupItems[groupItemIndex]['isPurchased'] = userItems[index]['isPurchased'];
+                  await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
+                }
+              }
+            }
+
+            if (userItems[index]['isPurchased'] == true) {
               await FirebaseFirestore.instance.collection('expense_tracker').add({
                 'category': item['name'],
                 'amount': item['price'],
@@ -149,27 +165,59 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
             ElevatedButton(
               onPressed: () async {
                 final user = FirebaseAuth.instance.currentUser;
-                if (user != null) {
+                final groupId = await fetchGroupId();
+                if (user != null && groupId != null) {
                   final updatedItem = normalizeItem({
+                    'id': item['id'],
                     'name': item['name'],
                     'quantity': int.tryParse(quantityController.text) ?? item['quantity'],
                     'price': double.tryParse(priceController.text) ?? item['price'],
                     'unit': selectedUnit,
                     'isChecked': item['isChecked'] ?? false,
+                    'isPurchased': item['isPurchased'] ?? false,
                   });
 
-                  final doc = await FirebaseFirestore.instance
+                  final userDoc = await FirebaseFirestore.instance
                       .collection('user_shopping_lists')
                       .doc(user.uid)
                       .get();
 
-                  if (doc.exists) {
-                    final items = List<Map<String, dynamic>>.from(doc['items']);
-                    items[index] = updatedItem;
+                  if (userDoc.exists) {
+                    final userItems = List<Map<String, dynamic>>.from(userDoc['items']);
+                    userItems[index] = updatedItem;
                     await FirebaseFirestore.instance
                         .collection('user_shopping_lists')
                         .doc(user.uid)
-                        .set({'items': items}, SetOptions(merge: true));
+                        .set({'items': userItems}, SetOptions(merge: true));
+                  }
+
+                  final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(groupId);
+                  final groupDoc = await groupDocRef.get();
+                  if (groupDoc.exists) {
+                    final groupData = groupDoc.data();
+                    if (groupData != null && groupData.containsKey('items')) {
+                      final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
+                      final groupItemIndex = groupItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
+                      if (groupItemIndex != -1) {
+                        groupItems[groupItemIndex] = updatedItem;
+                        await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
+                      }
+                    }
+                  }
+
+                  if (updatedItem['isPurchased'] == true) {
+                    final query = await FirebaseFirestore.instance
+                        .collection('expense_tracker')
+                        .where('userId', isEqualTo: user.uid)
+                        .where('category', isEqualTo: item['name'])
+                        .where('groupId', isEqualTo: groupId)
+                        .get();
+
+                    for (var doc in query.docs) {
+                      await doc.reference.update({
+                        'amount': updatedItem['price'],
+                      });
+                    }
                   }
                 }
 
@@ -198,19 +246,34 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
         final userData = userDoc.data();
         if (userData != null && userData.containsKey('items')) {
           final userItems = List<Map<String, dynamic>>.from(userData['items']);
-          userItems.removeWhere((existingItem) => existingItem['name'] == item['name']);
+          userItems.removeWhere((existingItem) => existingItem['id'] == item['id']);
           await userDocRef.set({'items': userItems}, SetOptions(merge: true));
+        }
+      }
 
-          final query = await FirebaseFirestore.instance
-              .collection('expense_tracker')
-              .where('userId', isEqualTo: user.uid)
-              .where('category', isEqualTo: item['name'])
-              .where('groupId', isEqualTo: groupId)
-              .get();
+      final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(groupId);
+      final groupDoc = await groupDocRef.get();
 
-          for (var doc in query.docs) {
-            await doc.reference.delete();
-          }
+      if (groupDoc.exists) {
+        final groupData = groupDoc.data();
+        if (groupData != null && groupData.containsKey('items')) {
+          final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
+          groupItems.removeWhere((groupItem) => groupItem['id'] == item['id']);
+          await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
+        }
+      }
+
+      // Csak akkor töröljük az expense_tracker bejegyzést, ha a termék nem volt megvásárolva
+      if (item['isPurchased'] != true) {
+        final query = await FirebaseFirestore.instance
+            .collection('expense_tracker')
+            .where('userId', isEqualTo: user.uid)
+            .where('category', isEqualTo: item['name'])
+            .where('groupId', isEqualTo: groupId)
+            .get();
+
+        for (var doc in query.docs) {
+          await doc.reference.delete();
         }
       }
 
@@ -240,7 +303,7 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = normalizeItem(items[index]);
-              final isChecked = item['isChecked'] ?? false;
+              final isPurchased = item['isPurchased'] ?? false;
 
               return ListTile(
                 title: Text(item['name']),
@@ -252,8 +315,8 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
                   children: [
                     IconButton(
                       icon: Icon(
-                        isChecked ? Icons.shopping_cart : Icons.shopping_cart_outlined,
-                        color: isChecked ? Colors.green : Colors.grey,
+                        isPurchased ? Icons.check : Icons.check_box_outline_blank,
+                        color: isPurchased ? Colors.green : Colors.grey,
                       ),
                       onPressed: () async {
                         await toggleItemStatus(item);

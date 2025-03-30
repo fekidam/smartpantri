@@ -79,7 +79,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Create New Group")),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -90,30 +90,35 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             const SizedBox(height: 20),
             const Text("Select Color"),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 10,
-              children: _colorOptions.map((color) {
-                bool isSelected = _selectedColor == color;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedColor = color),
-                  child: Container(
-                    padding: isSelected ? const EdgeInsets.all(3) : null,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected ? Colors.white : Colors.transparent,
-                        width: 3,
+            Container(
+              height: 200,
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 10,
+                  children: _colorOptions.map((color) {
+                    bool isSelected = _selectedColor == color;
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedColor = color),
+                      child: Container(
+                        padding: isSelected ? const EdgeInsets.all(3) : null,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? Colors.white : Colors.transparent,
+                            width: 3,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          backgroundColor: color,
+                          radius: 20,
+                        ),
                       ),
-                    ),
-                    child: CircleAvatar(
-                      backgroundColor: color,
-                      radius: 20,
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _saveGroup,
               child: const Text("Add Group"),
