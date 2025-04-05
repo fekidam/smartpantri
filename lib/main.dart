@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/scheduler.dart' hide Priority;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartpantri/screens/ai_chat_screen.dart';
 import 'package:smartpantri/screens/chat_screen.dart';
 import 'package:smartpantri/screens/theme_settings.dart';
@@ -19,6 +20,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/theme_provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:smartpantri/screens/notifications.dart';
+import 'package:smartpantri/screens/settings.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
@@ -80,21 +82,41 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool isGuestMode = false;
 
-  void setGuestMode(bool isGuest) {
-    setState(() {
-      isGuestMode = isGuest;
-    });
-  }
-
   @override
   void initState() {
     super.initState();
+    _loadGuestMode();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupFCM(context);
     });
   }
 
+  Future<void> _loadGuestMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isGuestMode = prefs.getBool('isGuestMode') ?? false;
+    });
+  }
+
+  Future<void> setGuestMode(bool isGuest) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isGuestMode = isGuest;
+      prefs.setBool('isGuestMode', isGuest);
+    });
+  }
+
+  Future<void> clearGuestMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isGuestMode = false;
+      prefs.remove('isGuestMode');
+    });
+  }
+
   void _setupFCM(BuildContext context) async {
+    if (isGuestMode) return;
+
     try {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
 
@@ -159,7 +181,7 @@ class _MyAppState extends State<MyApp> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => NotificationsScreen(groupId: groupId),
+              builder: (context) => NotificationsScreen(groupId: groupId, isGuest: isGuestMode),
             ),
           );
         }
@@ -171,7 +193,7 @@ class _MyAppState extends State<MyApp> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => NotificationsScreen(groupId: groupId),
+              builder: (context) => NotificationsScreen(groupId: groupId, isGuest: isGuestMode),
             ),
           );
         }
@@ -192,16 +214,29 @@ class _MyAppState extends State<MyApp> {
           themeMode: themeProvider.themeMode,
           home: const SplashScreen(),
           routes: {
-            '/login': (context) => const LoginScreen(),
-            '/register': (context) => const RegisterScreen(),
+            '/login': (context) => LoginScreen(setGuestMode: setGuestMode),
+            '/register': (context) => RegisterScreen(setGuestMode: setGuestMode),
             '/welcomescreen': (context) => WelcomeScreen(setGuestMode: setGuestMode),
             '/home': (context) => HomeScreen(isGuest: isGuestMode),
-            '/verify-email': (context) => const VerifyEmailScreen(),
-            '/group-chat': (context) => GroupChatScreen(groupId: 'groupId1'),
+            '/verify-email': (context) => isGuestMode
+                ? WelcomeScreen(setGuestMode: setGuestMode)
+                : const VerifyEmailScreen(),
+            '/group-chat': (context) => isGuestMode
+                ? WelcomeScreen(setGuestMode: setGuestMode)
+                : GroupChatScreen(
+              groupId: (ModalRoute.of(context)!.settings.arguments as Map)['groupId'] ?? 'groupId1',
+              isGuest: isGuestMode,
+            ),
             '/ai-chat': (context) => const AIChatScreen(),
             '/theme-settings': (context) => const ThemeSettingsScreen(),
-            '/notifications': (context) => NotificationsScreen(
+            '/settings': (context) => SettingsScreen(
+              isGuest: isGuestMode,
+            ),
+            '/notifications': (context) => isGuestMode
+                ? WelcomeScreen(setGuestMode: setGuestMode)
+                : NotificationsScreen(
               groupId: ModalRoute.of(context)!.settings.arguments as String? ?? 'default_group_id',
+              isGuest: isGuestMode,
             ),
           },
         );

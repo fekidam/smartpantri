@@ -5,7 +5,9 @@ import '../models/data.dart';
 import 'group_detail.dart';
 
 class CreateGroupScreen extends StatefulWidget {
-  const CreateGroupScreen({super.key});
+  final bool isGuest;
+
+  const CreateGroupScreen({super.key, required this.isGuest});
 
   @override
   _CreateGroupScreenState createState() => _CreateGroupScreenState();
@@ -43,6 +45,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           DocumentReference docRef = await FirebaseFirestore.instance.collection('groups').add(newGroup.toJson());
           String groupId = docRef.id;
 
+          bool isShared = newGroup.sharedWith.length > 1;
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -54,6 +58,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   userId: user.uid,
                   sharedWith: [user.uid],
                 ),
+                isGuest: widget.isGuest,
+                isShared: isShared,
               ),
             ),
           );
@@ -79,7 +85,14 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Create New Group")),
-      body: SingleChildScrollView(
+      body: widget.isGuest
+          ? const Center(
+        child: Text(
+          'Creating groups is not available in Guest Mode. Please log in to access this feature.',
+          textAlign: TextAlign.center,
+        ),
+      )
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [

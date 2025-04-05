@@ -8,7 +8,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:smartpantri/services/storage_service.dart';
 
 class WelcomeScreen extends StatefulWidget {
-  final Function(bool) setGuestMode;
+  final Function(bool)? setGuestMode;
   const WelcomeScreen({super.key, required this.setGuestMode});
 
   @override
@@ -89,6 +89,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               : '',
           'profilePictureUrl': user.photoURL ?? '',
         }, SetOptions(merge: true));
+        if (widget.setGuestMode != null) {
+          widget.setGuestMode!(false);
+        }
 
         Navigator.pushReplacementNamed(context, '/home');
       }
@@ -164,6 +167,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
                   ),
                   child: const Text('Log In'),
                 ),
@@ -174,6 +178,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
                   ),
                   child: const Text('Register'),
                 ),
@@ -189,9 +194,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () {
-                    widget.setGuestMode(true);
+                    if (widget.setGuestMode != null) {
+                      widget.setGuestMode!(true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Continuing as Guest')),
+                      );
+                    }
                     Navigator.of(context).pushReplacementNamed('/home');
                   },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  ),
                   child: const Text(
                     'Continue as Guest',
                     style: TextStyle(

@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final Function(bool)? setGuestMode;
+
+  const LoginScreen({super.key, this.setGuestMode});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -40,6 +42,9 @@ class _LoginScreenState extends State<LoginScreen> {
             'fcmToken': token,
           });
           print("FCM token updated successfully: $token");
+        }
+        if (widget.setGuestMode != null) {
+          widget.setGuestMode!(false);
         }
 
         Navigator.pushReplacementNamed(context, '/home');
@@ -131,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _login,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
               child: const Text('Log in'),
             ),
             const SizedBox(height: 10),

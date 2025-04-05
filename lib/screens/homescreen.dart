@@ -5,11 +5,14 @@ import 'shopping_lists.dart';
 
 class GroupHomeScreen extends StatelessWidget {
   final String groupId;
+  final bool isGuest;
 
-  const GroupHomeScreen({super.key, required this.groupId});
+  const GroupHomeScreen({super.key, required this.groupId, required this.isGuest});
 
   @override
   Widget build(BuildContext context) {
+    final effectiveGroupId = isGuest ? 'demo_group_id' : groupId;
+
     return ListView(
       children: [
         ListTile(
@@ -19,8 +22,8 @@ class GroupHomeScreen extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (context) => ExpenseTrackerScreen(
-                  isGuest: false,
-                  groupId: groupId,
+                  isGuest: isGuest,
+                  groupId: effectiveGroupId,
                 ),
               ),
             );
@@ -33,8 +36,8 @@ class GroupHomeScreen extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (context) => FridgeItemsScreen(
-                  isGuest: false,
-                  groupId: groupId,
+                  isGuest: isGuest,
+                  groupId: effectiveGroupId,
                 ),
               ),
             );
@@ -47,8 +50,8 @@ class GroupHomeScreen extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (context) => ShoppingListScreen(
-                  isGuest: false,
-                  groupId: groupId,
+                  isGuest: isGuest,
+                  groupId: effectiveGroupId,
                 ),
               ),
             );

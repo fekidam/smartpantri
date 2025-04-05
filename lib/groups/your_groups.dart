@@ -1,16 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class YourGroupsScreen extends StatefulWidget {
-  const YourGroupsScreen({super.key});
+  final bool isGuest;
+
+  const YourGroupsScreen({super.key, required this.isGuest});
 
   @override
   _YourGroupsScreenState createState() => _YourGroupsScreenState();
 }
 
 class _YourGroupsScreenState extends State<YourGroupsScreen> {
-  Future<String?> fetchGroupId() async {
+  List<Map<String, dynamic>> guestCartItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isGuest) {
+      _loadGuestCart();
+    }
+  }
+
+  Future<void> _loadGuestCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final guestCartString = prefs.getString('guestCartItems');
+    if (guestCartString != null) {
+      final List<dynamic> guestCartJson = jsonDecode(guestCartString);
+      setState(() {
+        guestCartItems = guestCartJson.map((item) => Map<String, dynamic>.from(item)).toList();
+      });
+    }
+  }
+
+  Future<void> _saveGuestCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('guestCartItems', jsonEncode(guestCartItems));
+  }
+
+  Future<List<String>> fetchGroupIds() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final querySnapshot = await FirebaseFirestore.instance
@@ -18,21 +48,36 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
           .where('sharedWith', arrayContains: user.uid)
           .get();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        return querySnapshot.docs.first.id;
-      }
+      return querySnapshot.docs.map((doc) => doc.id).toList();
     }
-    return null;
+    return [];
   }
 
   Future<List<Map<String, dynamic>>> fetchUserItems() async {
+    if (widget.isGuest) {
+      return guestCartItems;
+    }
+
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('user_shopping_lists')
-          .doc(user.uid)
-          .get();
-      final data = doc.data();
+      final groupIds = await fetchGroupIds();
+      List<Map<String, dynamic>> allItems = [];
+
+      for (String groupId in groupIds) {
+        final groupDoc = await FirebaseFirestore.instance.collection('shopping_lists').doc(groupId).get();
+        if (groupDoc.exists) {
+          final data = groupDoc.data();
+          if (data != null && data.containsKey('items')) {
+            allItems.addAll(List<Map<String, dynamic>>.from(data['items']));
+          }
+        }
+      }
+
+      final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+      await userDocRef.set({'items': allItems}, SetOptions(merge: true));
+
+      final userDoc = await userDocRef.get();
+      final data = userDoc.data();
       if (data != null && data.containsKey('items')) {
         return List<Map<String, dynamic>>.from(data['items']);
       }
@@ -56,21 +101,29 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
   }
 
   Future<void> toggleItemStatus(Map<String, dynamic> item) async {
+    if (widget.isGuest) {
+      setState(() {
+        final index = guestCartItems.indexWhere((i) => i['id'] == item['id']);
+        if (index != -1) {
+          guestCartItems[index]['isPurchased'] = !(guestCartItems[index]['isPurchased'] ?? false);
+        }
+      });
+      await _saveGuestCart();
+      return;
+    }
+
     final user = FirebaseAuth.instance.currentUser;
-    final groupId = await fetchGroupId();
+    final groupId = (await fetchGroupIds()).isNotEmpty ? (await fetchGroupIds()).first : null;
 
     if (user != null && groupId != null) {
-      final userDocRef = FirebaseFirestore.instance
-          .collection('user_shopping_lists')
-          .doc(user.uid);
+      final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
       final userDoc = await userDocRef.get();
 
       if (userDoc.exists) {
         final userData = userDoc.data();
         if (userData != null && userData.containsKey('items')) {
           final userItems = List<Map<String, dynamic>>.from(userData['items']);
-          final index = userItems.indexWhere(
-                  (existingItem) => existingItem['id'] == item['id']);
+          final index = userItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
 
           if (index != -1) {
             userItems[index]['isPurchased'] = !(userItems[index]['isPurchased'] ?? false);
@@ -164,59 +217,78 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final user = FirebaseAuth.instance.currentUser;
-                final groupId = await fetchGroupId();
-                if (user != null && groupId != null) {
-                  final updatedItem = normalizeItem({
-                    'id': item['id'],
-                    'name': item['name'],
-                    'quantity': int.tryParse(quantityController.text) ?? item['quantity'],
-                    'price': double.tryParse(priceController.text) ?? item['price'],
-                    'unit': selectedUnit,
-                    'isChecked': item['isChecked'] ?? false,
-                    'isPurchased': item['isPurchased'] ?? false,
+                if (widget.isGuest) {
+                  setState(() {
+                    final updatedItem = normalizeItem({
+                      'id': item['id'],
+                      'name': item['name'],
+                      'quantity': int.tryParse(quantityController.text) ?? item['quantity'],
+                      'price': double.tryParse(priceController.text) ?? item['price'],
+                      'unit': selectedUnit,
+                      'isChecked': item['isChecked'] ?? false,
+                      'isPurchased': item['isPurchased'] ?? false,
+                    });
+                    final cartIndex = guestCartItems.indexWhere((i) => i['id'] == item['id']);
+                    if (cartIndex != -1) {
+                      guestCartItems[cartIndex] = updatedItem;
+                    }
                   });
+                  await _saveGuestCart();
+                } else {
+                  final user = FirebaseAuth.instance.currentUser;
+                  final groupId = (await fetchGroupIds()).isNotEmpty ? (await fetchGroupIds()).first : null;
+                  if (user != null && groupId != null) {
+                    final updatedItem = normalizeItem({
+                      'id': item['id'],
+                      'name': item['name'],
+                      'quantity': int.tryParse(quantityController.text) ?? item['quantity'],
+                      'price': double.tryParse(priceController.text) ?? item['price'],
+                      'unit': selectedUnit,
+                      'isChecked': item['isChecked'] ?? false,
+                      'isPurchased': item['isPurchased'] ?? false,
+                    });
 
-                  final userDoc = await FirebaseFirestore.instance
-                      .collection('user_shopping_lists')
-                      .doc(user.uid)
-                      .get();
-
-                  if (userDoc.exists) {
-                    final userItems = List<Map<String, dynamic>>.from(userDoc['items']);
-                    userItems[index] = updatedItem;
-                    await FirebaseFirestore.instance
+                    final userDoc = await FirebaseFirestore.instance
                         .collection('user_shopping_lists')
                         .doc(user.uid)
-                        .set({'items': userItems}, SetOptions(merge: true));
-                  }
-
-                  final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(groupId);
-                  final groupDoc = await groupDocRef.get();
-                  if (groupDoc.exists) {
-                    final groupData = groupDoc.data();
-                    if (groupData != null && groupData.containsKey('items')) {
-                      final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
-                      final groupItemIndex = groupItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
-                      if (groupItemIndex != -1) {
-                        groupItems[groupItemIndex] = updatedItem;
-                        await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
-                      }
-                    }
-                  }
-
-                  if (updatedItem['isPurchased'] == true) {
-                    final query = await FirebaseFirestore.instance
-                        .collection('expense_tracker')
-                        .where('userId', isEqualTo: user.uid)
-                        .where('category', isEqualTo: item['name'])
-                        .where('groupId', isEqualTo: groupId)
                         .get();
 
-                    for (var doc in query.docs) {
-                      await doc.reference.update({
-                        'amount': updatedItem['price'],
-                      });
+                    if (userDoc.exists) {
+                      final userItems = List<Map<String, dynamic>>.from(userDoc['items']);
+                      userItems[index] = updatedItem;
+                      await FirebaseFirestore.instance
+                          .collection('user_shopping_lists')
+                          .doc(user.uid)
+                          .set({'items': userItems}, SetOptions(merge: true));
+                    }
+
+                    final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(groupId);
+                    final groupDoc = await groupDocRef.get();
+                    if (groupDoc.exists) {
+                      final groupData = groupDoc.data();
+                      if (groupData != null && groupData.containsKey('items')) {
+                        final groupItems = List<Map<String, dynamic>>.from(groupData['items']);
+                        final groupItemIndex = groupItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
+                        if (groupItemIndex != -1) {
+                          groupItems[groupItemIndex] = updatedItem;
+                          await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
+                        }
+                      }
+                    }
+
+                    if (updatedItem['isPurchased'] == true) {
+                      final query = await FirebaseFirestore.instance
+                          .collection('expense_tracker')
+                          .where('userId', isEqualTo: user.uid)
+                          .where('category', isEqualTo: item['name'])
+                          .where('groupId', isEqualTo: groupId)
+                          .get();
+
+                      for (var doc in query.docs) {
+                        await doc.reference.update({
+                          'amount': updatedItem['price'],
+                        });
+                      }
                     }
                   }
                 }
@@ -233,13 +305,19 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
   }
 
   Future<void> removeItem(Map<String, dynamic> item) async {
+    if (widget.isGuest) {
+      setState(() {
+        guestCartItems.removeWhere((i) => i['id'] == item['id']);
+      });
+      await _saveGuestCart();
+      return;
+    }
+
     final user = FirebaseAuth.instance.currentUser;
-    final groupId = await fetchGroupId();
+    final groupId = (await fetchGroupIds()).isNotEmpty ? (await fetchGroupIds()).first : null;
 
     if (user != null && groupId != null) {
-      final userDocRef = FirebaseFirestore.instance
-          .collection('user_shopping_lists')
-          .doc(user.uid);
+      final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
       final userDoc = await userDocRef.get();
 
       if (userDoc.exists) {
@@ -262,8 +340,6 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
           await groupDocRef.set({'items': groupItems}, SetOptions(merge: true));
         }
       }
-
-      // Csak akkor töröljük az expense_tracker bejegyzést, ha a termék nem volt megvásárolva
       if (item['isPurchased'] != true) {
         final query = await FirebaseFirestore.instance
             .collection('expense_tracker')

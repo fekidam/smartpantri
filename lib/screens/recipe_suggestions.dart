@@ -8,8 +8,9 @@ import 'allergy_selection.dart';
 
 class RecipeSuggestionsScreen extends StatefulWidget {
   final bool fromGroupScreen;
+  final bool isGuest;
 
-  const RecipeSuggestionsScreen({super.key, this.fromGroupScreen = false});
+  const RecipeSuggestionsScreen({super.key, this.fromGroupScreen = false, this.isGuest = false});
 
   @override
   _RecipeSuggestionsScreenState createState() => _RecipeSuggestionsScreenState();
@@ -85,6 +86,23 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     }
   }
 
+  void _viewRecipeDetails(int recipeId) {
+    if (widget.isGuest) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to view recipe details.'),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RecipeDetailScreen(recipeId: recipeId),
+        ),
+      );
+    }
+  }
+
   Widget _buildRecipeCard(Map<String, dynamic> recipe) {
     return Card(
       margin: const EdgeInsets.all(8.0),
@@ -123,14 +141,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RecipeDetailScreen(recipeId: recipe['id']),
-                    ),
-                  );
-                },
+                onPressed: () => _viewRecipeDetails(recipe['id']),
                 child: const Text('View Details'),
               ),
             ),
@@ -140,7 +151,6 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,10 +158,11 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
         title: const Text('Recipe Suggestions'),
         automaticallyImplyLeading: widget.fromGroupScreen,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _openAllergySelection,
-          ),
+          if (!widget.isGuest) // Vendég mód esetén nem mutatjuk a szűrő ikont
+            IconButton(
+              icon: const Icon(Icons.filter_list),
+              onPressed: _openAllergySelection,
+            ),
         ],
       ),
       body: isLoading

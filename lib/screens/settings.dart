@@ -3,12 +3,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:smartpantri/screens/privacy_settings.dart';
 import 'package:smartpantri/screens/profile_settings.dart';
 import 'package:smartpantri/screens/theme_settings.dart';
-
 import 'languages_settings.dart';
 import 'notifications_settings.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool isGuest;
+  final bool? isShared;
+
+  const SettingsScreen({
+    super.key,
+    required this.isGuest,
+    this.isShared = true,
+  });
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -36,35 +42,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            user != null
-                ? ListTile(
-              leading: CircleAvatar(
-                child: Text(user.email![0].toUpperCase()),
+            if (!widget.isGuest && user != null)
+              ListTile(
+                leading: CircleAvatar(
+                  child: Text(user.email![0].toUpperCase()),
+                ),
+                title: Text(user.email!),
               ),
-              title: Text(user.email!),
-            )
-                : Container(),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile Settings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ProfileSettingsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.notifications),
-              title: const Text('Notifications'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => NotificationSettingsScreen()),
-                );
-              },
-            ),
+            if (!widget.isGuest)
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: const Text('Profile Settings'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfileSettingsScreen()),
+                  );
+                },
+              ),
+            if (!widget.isGuest && (widget.isShared ?? true)) // Ha isShared null, akkor true
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('Notifications'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => NotificationSettingsScreen()),
+                  );
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.language),
               title: const Text('Language and Region'),
@@ -75,31 +82,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.security),
-              title: const Text('Privacy and Security'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => PrivacySecuritySettingsScreen()),
-                );
-              },
-            ),
+            if (!widget.isGuest)
+              ListTile(
+                leading: const Icon(Icons.security),
+                title: const Text('Privacy and Security'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PrivacySecuritySettingsScreen()),
+                  );
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.palette),
               title: const Text("Theme and Appearance"),
-              onTap: (){
+              onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ThemeSettingsScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => ThemeSettingsScreen(),
+                  ),
                 );
               },
             ),
             const SizedBox(height: 20),
+            if (widget.isGuest)
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/register');
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const Text('Register'),
+              ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _signOut,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Log out'),
+              child: Text(widget.isGuest ? 'Return to Welcome Screen' : 'Log out'),
             ),
           ],
         ),
@@ -107,6 +126,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
-
-

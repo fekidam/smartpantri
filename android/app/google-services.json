@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "533680516754",
     "project_id": "smartpantri-dc717",
-    "storage_bucket": "smartpantri-dc717.appspot.com"
+    "storage_bucket": "smartpantri-dc717.firebasestorage.app"
   },
   "client": [
     {
@@ -12,7 +12,20 @@
           "package_name": "com.example.smartpantri"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "533680516754-i9082khcku7i80ro6cconle6e0pg7end.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smartpantri",
+            "certificate_hash": "05e7622f09267f507ec05a8a1457b6288ae2296b"
+          }
+        },
+        {
+          "client_id": "533680516754-tarc1mubk9q7eu5qk84si0qv6d1hgd8g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAn88hyOzzza0xWcqUBcnk8cWgnsHrQ2wI"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "533680516754-tarc1mubk9q7eu5qk84si0qv6d1hgd8g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -5,7 +5,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/intl.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final Function(bool)? setGuestMode;
+
+  const RegisterScreen({super.key, this.setGuestMode});
 
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
@@ -38,6 +40,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'birthDate': selectedDate != null ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null,
           'fcmToken': token,
         });
+
+        if (widget.setGuestMode != null) {
+          widget.setGuestMode!(false);
+        }
 
         Navigator.pushReplacementNamed(context, '/verify-email');
       } on FirebaseAuthException catch (e) {
@@ -231,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _register,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                   child: const Text('Register'),
                 ),
               ],

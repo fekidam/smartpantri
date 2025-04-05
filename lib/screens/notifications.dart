@@ -8,8 +8,9 @@ import 'package:intl/intl.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final String groupId;
+  final bool isGuest;
 
-  const NotificationsScreen({super.key, required this.groupId});
+  const NotificationsScreen({super.key, required this.groupId, required this.isGuest});
 
   @override
   _NotificationsScreenState createState() => _NotificationsScreenState();
@@ -129,7 +130,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: const Text('Notifications'),
         automaticallyImplyLeading: false,
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: widget.isGuest
+          ? const Center(
+        child: Text(
+          'Notifications are not available in Guest Mode. Please log in to access this feature.',
+          textAlign: TextAlign.center,
+        ),
+      )
+          : StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('notifications')
             .where('groupId', isEqualTo: widget.groupId)
@@ -176,7 +184,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: widget.isGuest
+          ? null
+          : FloatingActionButton(
         onPressed: _showNotificationOptions,
         child: const Icon(Icons.add),
       ),

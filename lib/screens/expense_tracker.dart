@@ -27,10 +27,10 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
 
     for (var doc in querySnapshot.docs) {
       final data = doc.data();
-      final amount = data['amount'] ?? 0.0;
-      final userId = data['userId'] ?? 'unknown';
+      final amount = data['amount']?.toDouble() ?? 0.0;
+      final userId = data['userId'] ?? 'guest';
 
-      final userEmail = await getUserEmail(userId);
+      final userEmail = widget.isGuest ? 'Guest' : await getUserEmail(userId);
       totalExpenses += amount;
       userExpenses[userEmail] = (userExpenses[userEmail] ?? 0.0) + amount;
     }
@@ -42,8 +42,8 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
   }
 
   Future<String> getUserEmail(String userId) async {
-    final userDoc =
-    await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (userId == 'guest') return 'Guest';
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
     return userDoc.data()?['email'] ?? 'Unknown';
   }
 
@@ -53,9 +53,9 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
 
     for (var doc in snapshot.data!.docs) {
       final data = doc.data() as Map<String, dynamic>;
-      final userId = data['userId'] ?? 'Unknown';
-      final userEmail = await getUserEmail(userId);
-      final createdAt = (data['createdAt'] as Timestamp).toDate();
+      final userId = data['userId'] ?? 'guest';
+      final userEmail = widget.isGuest ? 'Guest' : await getUserEmail(userId);
+      final createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
       final dateKey =
           '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
 
@@ -163,7 +163,7 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
                       final items = dateEntry.value;
 
                       final dailyTotal = items.fold<double>(
-                          0.0, (sum, item) => sum + (item['amount'] ?? 0.0));
+                          0.0, (sum, item) => sum + (item['amount']?.toDouble() ?? 0.0));
 
                       return ExpansionTile(
                         title: Text(
@@ -173,7 +173,7 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
                           return ListTile(
                             title: Text(item['category'] ?? 'Unknown'),
                             subtitle: Text(
-                              'Price: ${(item['amount'] ?? 0.0).toStringAsFixed(2)} Ft',
+                              'Price: ${(item['amount']?.toDouble() ?? 0.0).toStringAsFixed(2)} Ft',
                             ),
                           );
                         }).toList(),

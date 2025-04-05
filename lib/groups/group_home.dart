@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smartpantri/groups/group_detail.dart';
-import 'package:smartpantri/groups/groups.dart';
 import 'package:smartpantri/groups/share_group.dart';
 import '../models/data.dart';
+import 'groups.dart';
 import 'your_groups.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
@@ -20,17 +20,37 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
 
-  Stream<List<Group>> _fetchGroups() {
+  Stream<List<Map<String, dynamic>>> _fetchGroups() {
+    if (widget.isGuest) {
+      return Stream.value([
+        {
+          'group': Group(
+            id: 'demo_group_id',
+            name: 'Demo Group',
+            color: '00FF00',
+            sharedWith: ['guest'],
+          ),
+          'isShared': false,
+        }
+      ]);
+    }
+
     if (user == null) {
       return Stream.value([]);
     }
+
     return FirebaseFirestore.instance
         .collection('groups')
         .where('sharedWith', arrayContains: user!.uid)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
-        return Group.fromJson(doc.id, doc.data());
+        final group = Group.fromJson(doc.id, doc.data());
+        final isShared = group.sharedWith.length > 1;
+        return {
+          'group': group,
+          'isShared': isShared,
+        };
       }).toList();
     });
   }
@@ -124,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<List<Group>>(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _fetchGroups(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -133,16 +153,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text("No groups found"));
                 }
-                List<Group> groups = snapshot.data!;
+                List<Map<String, dynamic>> groupData = snapshot.data!;
                 return ListView(
-                  children: groups.map((group) {
+                  children: groupData.map((data) {
+                    final group = data['group'] as Group;
+                    final isShared = data['isShared'] as bool;
                     return ListTile(
                       title: Text(group.name),
                       leading: CircleAvatar(
                         backgroundColor: Color(int.parse('0xFF${group.color}')),
                       ),
-                      subtitle: group.sharedWith.length > 1 ? const Text('Shared') : null,
-                      trailing: Row(
+                      subtitle: isShared ? const Text('Shared') : null,
+                      trailing: widget.isGuest
+                          ? null
+                          : Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
@@ -170,7 +194,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => GroupDetailScreen(group: group),
+                            builder: (context) => GroupDetailScreen(
+                              group: group,
+                              isGuest: widget.isGuest,
+                              isShared: isShared,
+                            ),
                           ),
                         );
                       },
@@ -186,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const YourGroupsScreen()),
+                  MaterialPageRoute(builder: (context) => YourGroupsScreen(isGuest: widget.isGuest)),
                 );
               },
               icon: const Icon(Icons.list),
@@ -195,11 +223,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: widget.isGuest
+          ? null
+          : FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const CreateGroupScreen()),
+            MaterialPageRoute(
+              builder: (context) => CreateGroupScreen(isGuest: widget.isGuest),
+            ),
           );
         },
         child: const Icon(Icons.add),

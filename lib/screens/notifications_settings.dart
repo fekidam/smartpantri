@@ -1,19 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
-class NotificationSettingsScreen extends StatefulWidget{
+class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
   _NotificationsSettingsScreenState createState() => _NotificationsSettingsScreenState();
 }
 
-class _NotificationsSettingsScreenState extends State<NotificationSettingsScreen>{
+class _NotificationsSettingsScreenState extends State<NotificationSettingsScreen> {
   bool notificationsEnabled = true;
-  bool messageNotifications= true;
+  bool messageNotifications = true;
   bool updateNotifications = false;
 
   @override
-  Widget build(BuildContext context){
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
+      messageNotifications = prefs.getBool('messageNotifications') ?? true;
+      updateNotifications = prefs.getBool('updateNotifications') ?? false;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notificationsEnabled', notificationsEnabled);
+    await prefs.setBool('messageNotifications', messageNotifications);
+    await prefs.setBool('updateNotifications', updateNotifications);
+  }
+
+  void _configureFCM() {
+    if (!notificationsEnabled) {
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      });
+      return;
+    }
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.notification != null) {
+        String? messageType = message.data['type'];
+
+        if (messageType == 'update' && !updateNotifications) {
+          return;
+        }
+
+        if (messageType == 'message' && !messageNotifications) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${message.notification!.title}: ${message.notification!.body}',
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Notifications')),
       body: Padding(
@@ -21,23 +75,45 @@ class _NotificationsSettingsScreenState extends State<NotificationSettingsScreen
         child: ListView(
           children: [
             SwitchListTile(
-                title: const Text('Enable Notifications'),
-                value: notificationsEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    notificationsEnabled = true;
-                    // TODO:
-                  });
-                },
+              title: const Text('Enable Notifications'),
+              value: notificationsEnabled,
+              onChanged: (value) {
+                setState(() {
+                  notificationsEnabled = value;
+                  if (!notificationsEnabled) {
+                    messageNotifications = false;
+                    updateNotifications = false;
+                  }
+                });
+                _saveSettings();
+                _configureFCM();
+              },
             ),
             SwitchListTile(
-                title: const Text('Notifications on Updates'),
-                value: updateNotifications,
-                onChanged: (value){
-                  setState(() {
-                    //TODO:
-                  });
-                }
+              title: const Text('Message Notifications'),
+              value: messageNotifications,
+              onChanged: notificationsEnabled
+                  ? (value) {
+                setState(() {
+                  messageNotifications = value;
+                });
+                _saveSettings();
+                _configureFCM();
+              }
+                  : null,
+            ),
+            SwitchListTile(
+              title: const Text('Notifications on Updates'),
+              value: updateNotifications,
+              onChanged: notificationsEnabled
+                  ? (value) {
+                setState(() {
+                  updateNotifications = value;
+                });
+                _saveSettings();
+                _configureFCM();
+              }
+                  : null,
             ),
           ],
         ),

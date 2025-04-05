@@ -19,12 +19,16 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController currentPasswordController = TextEditingController();
   String? profileImageUrl;
   final User? user = FirebaseAuth.instance.currentUser;
+  bool _isPasswordVisible = false;
+  bool _isCurrentPasswordVisible = false;
 
   @override
   void initState() {
     super.initState();
+    FirebaseAuth.instance.setLanguageCode('hu');
     _loadUserData();
   }
 
@@ -50,12 +54,38 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           'firstName': firstNameController.text,
           'lastName': lastNameController.text,
         });
+
         if (emailController.text != user!.email) {
           await user!.verifyBeforeUpdateEmail(emailController.text);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Verification email sent. Please check your inbox.')),
+          );
         }
-        if (passwordController.text.isNotEmpty) {
+
+        if(passwordController.text.isNotEmpty){
+          if(passwordController.text.length < 6){
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Password must be at least 6 characters long.")),
+            );
+            return;
+          }
+
+          if (currentPasswordController.text.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please enter your current password to update the new password.')),
+            );
+            return;
+          }
+
+          final credential = EmailAuthProvider.credential(
+            email: user!.email!,
+            password: currentPasswordController.text,
+          );
+          await user!.reauthenticateWithCredential(credential);
+
           await user!.updatePassword(passwordController.text);
         }
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Your Profile is Updated!')),
         );
@@ -201,8 +231,40 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               decoration: const InputDecoration(labelText: 'Email'),
             ),
             TextField(
+              controller: currentPasswordController,
+              obscureText: !_isCurrentPasswordVisible,
+              decoration: InputDecoration(
+                labelText: 'Current Password (required for password update)',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isCurrentPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isCurrentPasswordVisible = !_isCurrentPasswordVisible;
+                    });
+                  },
+                ),
+              ),
+            ),
+            TextField(
               controller: passwordController,
-              decoration: const InputDecoration(labelText: 'New Password (optional)'),
+              obscureText: !_isPasswordVisible,
+              decoration: InputDecoration(
+                labelText: 'New Password (optional)',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

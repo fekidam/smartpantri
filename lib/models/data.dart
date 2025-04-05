@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class ShoppingItem {
   String name;
   int quantity;
@@ -25,14 +24,14 @@ class Group {
   final String id;
   final String name;
   final String color;
-  final String userId;
+  final String? userId;
   final List<String> sharedWith;
 
   Group({
     required this.id,
     required this.name,
     required this.color,
-    required this.userId,
+    this.userId,
     this.sharedWith = const [],
   });
 
@@ -40,7 +39,7 @@ class Group {
     return {
       'name': name,
       'color': color,
-      'userId': userId,
+      'userId': userId ?? '',
       'sharedWith': sharedWith,
     };
   }
@@ -50,7 +49,7 @@ class Group {
       id: id,
       name: json['name'],
       color: json['color'],
-      userId: json['userId'],
+      userId: json['userId'] ?? '',
       sharedWith: List<String>.from(json['sharedWith'] ?? []),
     );
   }

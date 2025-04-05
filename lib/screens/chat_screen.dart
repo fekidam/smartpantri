@@ -4,8 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
+  final bool isGuest;
 
-  const GroupChatScreen({super.key, required this.groupId});
+  const GroupChatScreen({super.key, required this.groupId, required this.isGuest});
 
   @override
   _GroupChatScreenState createState() => _GroupChatScreenState();
@@ -99,16 +100,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         title: const Text('Group Chat'),
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.smart_toy),
-            onPressed: () {
-              Navigator.pushNamed(context, '/ai-chat');
-            },
-            tooltip: 'Switch to AI Chat',
-          ),
+          if (!widget.isGuest)
+            IconButton(
+              icon: const Icon(Icons.smart_toy),
+              onPressed: () {
+                Navigator.pushNamed(context, '/ai-chat');
+              },
+              tooltip: 'Switch to AI Chat',
+            ),
         ],
       ),
-      body: Column(
+      body: widget.isGuest
+          ? const Center(
+        child: Text(
+          'Chat is not available in Guest Mode. Please log in to access this feature.',
+          textAlign: TextAlign.center,
+        ),
+      )
+          : Column(
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(

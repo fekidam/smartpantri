@@ -15,26 +15,33 @@ class FridgeItemsScreen extends StatefulWidget {
 class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
   bool hasAccess = false;
 
-  bool _hasAccess(String groupId) {
+  Future<bool> _hasAccess(String groupId) async {
+    if (widget.isGuest) {
+      return groupId == 'demo_group_id';
+    }
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
 
-    FirebaseFirestore.instance.collection('groups').doc(groupId).get().then((doc) {
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        setState(() {
-          hasAccess = data['userId'] == user.uid || (data['sharedWith'] as List<dynamic>).contains(user.uid);
-        });
-      }
-    });
-
-    return hasAccess;
+    final doc = await FirebaseFirestore.instance.collection('groups').doc(groupId).get();
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+      return data['userId'] == user.uid || (data['sharedWith'] as List<dynamic>).contains(user.uid);
+    }
+    return false;
   }
 
   @override
   void initState() {
     super.initState();
-    hasAccess = _hasAccess(widget.groupId);
+    _checkAccess();
+  }
+
+  Future<void> _checkAccess() async {
+    bool access = await _hasAccess(widget.groupId);
+    setState(() {
+      hasAccess = access;
+    });
   }
 
   void _addItem(String name, String quantity, String unit) async {
@@ -48,7 +55,6 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
       'unit': unit,
       'createdAt': FieldValue.serverTimestamp(),
     });
-    setState(() {});
   }
 
   void _editItem(BuildContext context, Map<String, dynamic> item, String docId) {
@@ -107,7 +113,6 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     if (!hasAccess) {
       return Scaffold(
@@ -128,7 +133,6 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
           },
         ),
       ),
-
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('groups')
@@ -191,7 +195,6 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
     );
   }
 
-
   void _showAddItemDialog(BuildContext context) {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController quantityController = TextEditingController();
@@ -249,5 +252,4 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
       },
     );
   }
-
 }
