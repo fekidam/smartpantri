@@ -13,51 +13,57 @@ class GroupHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveGroupId = isGuest ? 'demo_group_id' : groupId;
 
-    return ListView(
-      children: [
-        ListTile(
-          title: const Text("Expense Tracker"),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ExpenseTrackerScreen(
-                  isGuest: isGuest,
-                  groupId: effectiveGroupId,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Home'),
+        automaticallyImplyLeading: false,
+      ),
+      body: ListView(
+        children: [
+          ListTile(
+            title: const Text("Expense Tracker"),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ExpenseTrackerScreen(
+                    isGuest: isGuest,
+                    groupId: effectiveGroupId,
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("What's in the Fridge"),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FridgeItemsScreen(
-                  isGuest: isGuest,
-                  groupId: effectiveGroupId,
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("What's in the Fridge"),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FridgeItemsScreen(
+                    isGuest: isGuest,
+                    groupId: effectiveGroupId,
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("Shopping List"),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ShoppingListScreen(
-                  isGuest: isGuest,
-                  groupId: effectiveGroupId,
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("Shopping List"),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ShoppingListScreen(
+                    isGuest: isGuest,
+                    groupId: effectiveGroupId,
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
-      ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

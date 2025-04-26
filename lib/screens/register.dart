@@ -31,14 +31,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: passwordController.text,
         );
 
-        String? token = await FirebaseMessaging.instance.getToken();
-
+        // Mentsük el a felhasználó adatait a Firestore-ban, beleértve a theme beállításokat
         await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
           'firstName': firstNameController.text,
           'lastName': lastNameController.text,
           'email': emailController.text,
           'birthDate': selectedDate != null ? DateFormat('yyyy-MM-dd').format(selectedDate!) : null,
-          'fcmToken': token,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isDarkMode': true, // Alapértelmezett érték
+          'primaryColor': Colors.blue.value, // Alapértelmezett érték
         });
 
         if (widget.setGuestMode != null) {

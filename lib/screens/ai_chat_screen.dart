@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'homescreen.dart';
+import 'package:smartpantri/models/data.dart';
+import 'package:smartpantri/groups/group_detail.dart';
 
 class AIChatScreen extends StatefulWidget {
   const AIChatScreen({super.key});
@@ -17,13 +20,67 @@ class _AIChatScreenState extends State<AIChatScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ScrollController _scrollController = ScrollController();
+  bool _isInSharedGroup = false;
+  String? _groupId;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _checkIfUserInSharedGroup();
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _checkIfUserInSharedGroup() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      _isInSharedGroup = false;
+      _groupId = null;
+      return;
+    }
+
+    try {
+      final groupSnapshot = await _firestore
+          .collection('groups')
+          .where('sharedWith', arrayContains: user.uid)
+          .limit(1)
+          .get();
+
+      if (groupSnapshot.docs.isNotEmpty) {
+        _isInSharedGroup = true;
+        _groupId = groupSnapshot.docs.first.id;
+      } else {
+        _isInSharedGroup = false;
+        _groupId = null;
+      }
+    } catch (e) {
+      print('Error checking group membership: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error checking group membership: $e')),
+        );
+      }
+      _isInSharedGroup = false;
+      _groupId = null;
+    }
+  }
 
   void _sendMessage(String text) async {
     final user = _auth.currentUser;
     if (text.isNotEmpty && user != null) {
       _messageController.clear();
 
-      await _firestore.collection('chats').doc('ai-chat').collection(user.uid).add({
+      await _firestore
+          .collection('chats')
+          .doc('ai-chat')
+          .collection(user.uid)
+          .add({
         'sender': user.email,
         'content': text,
         'timestamp': FieldValue.serverTimestamp(),
@@ -31,7 +88,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
       final aiResponse = await _getAIResponse(text);
 
-      await _firestore.collection('chats').doc('ai-chat').collection(user.uid).add({
+      await _firestore
+          .collection('chats')
+          .doc('ai-chat')
+          .collection(user.uid)
+          .add({
         'sender': 'AI',
         'content': aiResponse,
         'timestamp': FieldValue.serverTimestamp(),
@@ -46,11 +107,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
     const endpoint = 'https://api.openai.com/v1/chat/completions';
 
     try {
-      // Automatikus nyelvérzékelés az üzenet alapján
       final isEnglish = RegExp(r'^[a-zA-Z0-9 .,!?]*\$').hasMatch(prompt);
       final systemMessage = isEnglish
           ? 'You are a helpful assistant that provides support regarding the application usage and recipe suggestions.'
-          : 'Te egy segítőkész asszisztens vagy, aki kizárólag az applikáció használatával és receptajánlásokkal kapcsolatban válaszol.';
+          : 'You are a helpful assistant that provides support regarding the application usage and recipe suggestions, answering in Hungarian.';
 
       final response = await http.post(
         Uri.parse(endpoint),
@@ -91,8 +151,56 @@ class _AIChatScreenState extends State<AIChatScreen> {
     }
   }
 
+  Future<void> _navigateToGroupChat() async {
+    if (_groupId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No group ID found.')),
+      );
+      return;
+    }
+
+    try {
+      final groupDoc = await _firestore.collection('groups').doc(_groupId).get();
+      if (!groupDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Group not found.')),
+        );
+        return;
+      }
+
+      final groupData = groupDoc.data()!;
+      final group = Group.fromJson(_groupId!, groupData);
+      final isShared = group.sharedWith.length > 1;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GroupDetailScreen(
+            group: group,
+            isGuest: false,
+            isShared: isShared,
+          ),
+          settings: const RouteSettings(
+            arguments: {'selectedIndex': 2},
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Error navigating to group chat: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error navigating to group chat: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Chat'),
@@ -101,7 +209,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
           IconButton(
             icon: const Icon(Icons.message),
             onPressed: () {
-              Navigator.pop(context);
+              if (_isInSharedGroup) {
+                _navigateToGroupChat();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('To use group chat, you need to invite another user.'),
+                  ),
+                );
+              }
             },
             tooltip: 'Switch to Group Chat',
           ),
@@ -140,7 +256,8 @@ class _AIChatScreenState extends State<AIChatScreen> {
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 5, horizontal: 10),
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: isMe ? Colors.green[100] : Colors.grey[300],

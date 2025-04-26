@@ -103,7 +103,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             const SizedBox(height: 20),
             const Text("Select Color"),
             const SizedBox(height: 10),
-            Container(
+            SizedBox(
               height: 200,
               child: SingleChildScrollView(
                 child: Wrap(

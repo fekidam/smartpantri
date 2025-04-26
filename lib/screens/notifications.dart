@@ -22,6 +22,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _sendNotification(String message) async {
     User? user = _auth.currentUser;
     if (user != null && widget.groupId.isNotEmpty) {
+      // Mentsük az értesítést a Firestore-ba
       await FirebaseFirestore.instance.collection('notifications').add({
         'message': message,
         'timestamp': FieldValue.serverTimestamp(),
@@ -29,6 +30,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'groupId': widget.groupId,
       });
 
+      // Szerezzük meg a csoport adatait
       DocumentSnapshot groupDoc = await FirebaseFirestore.instance
           .collection('groups')
           .doc(widget.groupId)
@@ -37,15 +39,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (groupDoc.exists && groupDoc.data() != null) {
         List<dynamic> sharedWith = groupDoc['sharedWith'] ?? [];
 
+        // Küldj értesítést minden megosztott felhasználónak
         for (String userId in sharedWith) {
           if (userId != user.uid) {
-            DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            // Szerezzük meg a felhasználó tokenjeit a tokens al-kollekcióból
+            QuerySnapshot tokensSnapshot = await FirebaseFirestore.instance
                 .collection('users')
                 .doc(userId)
+                .collection('tokens')
                 .get();
 
-            if (userDoc.exists && userDoc['fcmToken'] != null) {
-              String fcmToken = userDoc['fcmToken'];
+            for (var tokenDoc in tokensSnapshot.docs) {
+              String fcmToken = tokenDoc['token'];
               await _sendPushNotification(fcmToken, message);
             }
           }

@@ -72,23 +72,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       User? user = userCredential.user;
 
       if (user != null) {
-        String? fcmToken;
-        try {
-          fcmToken = await FirebaseMessaging.instance.getToken();
-        } catch (e) {
-          print('Error getting FCM token: $e');
-        }
-
+        // Mentsük el a felhasználó adatait a Firestore-ban, de ne mentsük az FCM tokent
         await _firestore.collection('users').doc(user.uid).set({
           'birthDate': '',
           'email': user.email ?? '',
-          'fcmToken': fcmToken ?? '',
           'firstName': user.displayName?.split(' ').first ?? '',
           'lastName': (user.displayName != null && user.displayName!.split(' ').length > 1)
               ? user.displayName?.split(' ').last ?? ''
               : '',
           'profilePictureUrl': user.photoURL ?? '',
         }, SetOptions(merge: true));
+
         if (widget.setGuestMode != null) {
           widget.setGuestMode!(false);
         }

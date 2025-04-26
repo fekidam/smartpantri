@@ -72,6 +72,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         label: 'Profile',
       ),
     ];
+
+    // Navigációs argumentumok kezelése
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (arguments != null && arguments.containsKey('selectedIndex')) {
+        setState(() {
+          _selectedIndex = arguments['selectedIndex'] as int;
+        });
+      }
+    });
   }
 
   void _onItemTapped(int index) {

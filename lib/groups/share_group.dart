@@ -20,7 +20,7 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
 
     if (email.isEmpty) {
       setState(() {
-        message = 'Please enter an email.';
+        message = 'Please enter an email address.';
       });
       return;
     }
@@ -39,16 +39,18 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
       }
 
       final userId = userSnapshot.docs.first.id;
-      await FirebaseFirestore.instance
-          .collection('groups')
-          .doc(widget.groupId)
-          .update({
+      final groupRef = FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
+
+      await groupRef.update({
         'sharedWith': FieldValue.arrayUnion([userId])
       });
 
       setState(() {
-        message = 'Group shared successfully!';
+        message = 'Group shared successfully! The user has been notified.';
       });
+
+      // Clear the email input after successful sharing
+      emailController.clear();
     } catch (e) {
       setState(() {
         message = 'Error sharing group: $e';
@@ -82,6 +84,7 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
               decoration: const InputDecoration(
                 labelText: 'Enter email to share with',
               ),
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 20),
             ElevatedButton(

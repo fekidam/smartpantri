@@ -17,6 +17,32 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.isGuest) {
+      _initializeChatDocument();
+    }
+  }
+
+  Future<void> _initializeChatDocument() async {
+    final chatDocRef = _firestore.collection('chats').doc(widget.groupId);
+
+    try {
+      final docSnapshot = await chatDocRef.get();
+      if (!docSnapshot.exists) {
+        await chatDocRef.set({
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      print('Error initializing chat document: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error initializing chat: $e')),
+      );
+    }
+  }
+
   void _sendMessage() async {
     if (_messageController.text.trim().isNotEmpty && widget.groupId.isNotEmpty) {
       final messageContent = _messageController.text.trim();
@@ -34,6 +60,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         });
       } catch (e) {
         print('Error saving message: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving message: $e')),
+        );
       }
     }
   }
@@ -48,6 +77,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           .delete();
     } catch (e) {
       print('Error deleting message: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting message: $e')),
+      );
     }
   }
 
@@ -83,6 +115,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   Navigator.pop(context);
                 } catch (e) {
                   print('Error editing message: $e');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error editing message: $e')),
+                  );
                 }
               },
               child: const Text('Save'),
@@ -97,8 +132,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Group Chat'),
-        automaticallyImplyLeading: false,
+        title: const Text('Group Chat'), // Módosítva: csak "Group Chat" jelenik meg
+        automaticallyImplyLeading: true,
         actions: [
           if (!widget.isGuest)
             IconButton(
@@ -132,7 +167,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return const Center(child: Text('Error loading messages.'));
+                  return Center(child: Text('Error loading messages: ${snapshot.error}'));
                 }
 
                 final messages = snapshot.data!.docs;
@@ -140,8 +175,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 return ListView.builder(
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final message =
-                    messages[index].data() as Map<String, dynamic>;
+                    final message = messages[index].data() as Map<String, dynamic>;
                     final sender = message['sender'] ?? 'Unknown';
                     final text = message['text'] ?? '';
                     final messageId = messages[index].id;
@@ -180,25 +214,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       }
                           : null,
                       child: Align(
-                        alignment: isMe
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
+                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                         child: Container(
-                          margin: const EdgeInsets.symmetric(
-                              vertical: 5, horizontal: 10),
+                          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color:
-                            isMe ? Colors.green[100] : Colors.grey[300],
+                            color: isMe ? Colors.green[100] : Colors.grey[300],
                             borderRadius: BorderRadius.only(
                               topLeft: const Radius.circular(12),
                               topRight: const Radius.circular(12),
-                              bottomLeft: isMe
-                                  ? const Radius.circular(12)
-                                  : const Radius.circular(0),
-                              bottomRight: isMe
-                                  ? const Radius.circular(0)
-                                  : const Radius.circular(12),
+                              bottomLeft: isMe ? const Radius.circular(12) : const Radius.circular(0),
+                              bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(12),
                             ),
                           ),
                           child: Column(
@@ -208,9 +234,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                 sender,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isMe
-                                      ? Colors.green[700]
-                                      : Colors.grey[700],
+                                  color: isMe ? Colors.green[700] : Colors.grey[700],
                                 ),
                               ),
                               const SizedBox(height: 5),

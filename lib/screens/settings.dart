@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smartpantri/screens/privacy_settings.dart';
 import 'package:smartpantri/screens/profile_settings.dart';
 import 'package:smartpantri/screens/theme_settings.dart';
 import 'languages_settings.dart';
 import 'notifications_settings.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // Hozzáadjuk a GoogleSignIn importot
 
 class SettingsScreen extends StatefulWidget {
   final bool isGuest;
@@ -23,10 +25,47 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool openLastUsedAtLaunch = true;
   bool keepScreenOn = false;
+  String? profilePictureUrl;
 
-  void _signOut() async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushReplacementNamed(context, '/welcomescreen');
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (doc.exists) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          profilePictureUrl = data['profilePictureUrl'] ?? '';
+        });
+      }
+    }
+  }
+
+  Future<void> _signOut() async {
+    try {
+      // Ha nem vendég módban vagyunk, akkor kijelentkeztetjük a Google-fiókot is
+      if (!widget.isGuest) {
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut(); // Google Sign-In munkamenet törlése
+      }
+      // Firebase Authentication kijelentkezés
+      await FirebaseAuth.instance.signOut();
+      // Navigáció a WelcomeScreen-re
+      Navigator.pushReplacementNamed(context, '/welcomescreen');
+    } catch (e) {
+      // Hiba esetén értesítjük a felhasználót
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error logging out: $e')),
+      );
+    }
   }
 
   @override
@@ -45,7 +84,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (!widget.isGuest && user != null)
               ListTile(
                 leading: CircleAvatar(
-                  child: Text(user.email![0].toUpperCase()),
+                  backgroundImage: profilePictureUrl != null && profilePictureUrl!.isNotEmpty
+                      ? NetworkImage(profilePictureUrl!)
+                      : null,
+                  child: profilePictureUrl == null || profilePictureUrl!.isEmpty
+                      ? Text(user.email![0].toUpperCase())
+                      : null,
                 ),
                 title: Text(user.email!),
               ),
@@ -54,11 +98,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.person),
                 title: const Text('Profile Settings'),
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  // Navigálunk a ProfileSettingsScreen-re, és várjuk meg a visszatérést
+                  await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => ProfileSettingsScreen()),
+                    MaterialPageRoute(builder: (context) => const ProfileSettingsScreen()),
                   );
+                  // Frissítjük az adatokat, hogy a profilkép megjelenjen, ha megváltozott
+                  await _loadUserData();
                 },
               ),
             if (!widget.isGuest && (widget.isShared ?? true)) // Ha isShared null, akkor true

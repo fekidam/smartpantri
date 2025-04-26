@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,6 +21,44 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
+  StreamSubscription<QuerySnapshot>? _groupsSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupGroupsListener();
+  }
+
+  @override
+  void dispose() {
+    _groupsSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _setupGroupsListener() {
+    if (widget.isGuest || user == null) return;
+
+    _groupsSubscription = FirebaseFirestore.instance
+        .collection('groups')
+        .where('sharedWith', arrayContains: user!.uid)
+        .snapshots()
+        .listen((snapshot) {
+      // A StreamBuilder automatikusan kezeli a frissítéseket
+    }, onError: (error) {
+      print('Error fetching groups: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching groups: $error')),
+      );
+    });
+
+    // Kijelentkezés figyelése
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user == null) {
+        _groupsSubscription?.cancel();
+        setState(() {});
+      }
+    });
+  }
 
   Stream<List<Map<String, dynamic>>> _fetchGroups() {
     if (widget.isGuest) {

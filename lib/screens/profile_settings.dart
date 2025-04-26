@@ -24,6 +24,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
   bool _isPasswordVisible = false;
   bool _isCurrentPasswordVisible = false;
+  bool _isLoading = false;
+  bool isGoogleUser = false;
 
   @override
   void initState() {
@@ -34,6 +36,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   Future<void> _loadUserData() async {
     if (user != null) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Ellenőrizzük, hogy Google fiókkal jelentkezett-e be
+      isGoogleUser = user!.providerData.any((provider) => provider.providerId == 'google.com');
+
       DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
       if (doc.exists) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
@@ -42,6 +51,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           lastNameController.text = data['lastName'] ?? '';
           emailController.text = user!.email ?? '';
           profileImageUrl = data['profilePictureUrl'] ?? '';
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          emailController.text = user!.email ?? '';
+          _isLoading = false;
         });
       }
     }
@@ -49,12 +64,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   Future<void> _updateProfile() async {
     try {
-      if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
-          'firstName': firstNameController.text,
-          'lastName': lastNameController.text,
-        });
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
 
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Mindig frissítjük a Firestore-ban tárolt adatokat
+      await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+        'firstName': firstNameController.text,
+        'lastName': lastNameController.text,
+      });
+
+      // Csak nem-Google felhasználók számára frissítjük az emailt és jelszót
+      if (!isGoogleUser) {
         if (emailController.text != user!.email) {
           await user!.verifyBeforeUpdateEmail(emailController.text);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -62,11 +87,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           );
         }
 
-        if(passwordController.text.isNotEmpty){
-          if(passwordController.text.length < 6){
+        if (passwordController.text.isNotEmpty) {
+          if (passwordController.text.length < 6) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Password must be at least 6 characters long.")),
             );
+            setState(() {
+              _isLoading = false;
+            });
             return;
           }
 
@@ -74,6 +102,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Please enter your current password to update the new password.')),
             );
+            setState(() {
+              _isLoading = false;
+            });
             return;
           }
 
@@ -85,12 +116,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
           await user!.updatePassword(passwordController.text);
         }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Your Profile is Updated!')),
-        );
       }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your Profile is Updated!')),
+      );
     } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Something went wrong: $e")),
       );
@@ -199,74 +237,147 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please log in to edit your profile.')),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile Settings')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
+            // Profilkép
             GestureDetector(
               onTap: _uploadProfilePicture,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundImage: profileImageUrl != null && profileImageUrl!.isNotEmpty
-                    ? NetworkImage(profileImageUrl!)
-                    : null,
-                child: profileImageUrl == null || profileImageUrl!.isEmpty
-                    ? const Icon(Icons.person, size: 50)
-                    : null,
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: profileImageUrl != null && profileImageUrl!.isNotEmpty
+                        ? NetworkImage(profileImageUrl!)
+                        : null,
+                    child: profileImageUrl == null || profileImageUrl!.isEmpty
+                        ? const Icon(Icons.person, size: 50)
+                        : null,
+                  ),
+                  const CircleAvatar(
+                    radius: 15,
+                    backgroundColor: Colors.blue,
+                    child: Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
+
+            // Keresztnév (szerkeszthető)
             TextField(
               controller: firstNameController,
-              decoration: const InputDecoration(labelText: 'First name'),
-            ),
-            TextField(
-              controller: lastNameController,
-              decoration: const InputDecoration(labelText: 'Last name'),
-            ),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: currentPasswordController,
-              obscureText: !_isCurrentPasswordVisible,
-              decoration: InputDecoration(
-                labelText: 'Current Password (required for password update)',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isCurrentPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.grey,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isCurrentPasswordVisible = !_isCurrentPasswordVisible;
-                    });
-                  },
-                ),
-              ),
-            ),
-            TextField(
-              controller: passwordController,
-              obscureText: !_isPasswordVisible,
-              decoration: InputDecoration(
-                labelText: 'New Password (optional)',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.grey,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isPasswordVisible = !_isPasswordVisible;
-                    });
-                  },
-                ),
+              decoration: const InputDecoration(
+                labelText: 'First name',
+                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
+
+            // Vezetéknév (szerkeszthető)
+            TextField(
+              controller: lastNameController,
+              decoration: const InputDecoration(
+                labelText: 'Last name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Email (nem szerkeszthető Google felhasználóknak)
+            Text(
+              'Email',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Colors.grey[500],
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: Text(
+                emailController.text,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            if (isGoogleUser) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Managed by Google',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+
+            // Jelszó mezők (csak nem-Google felhasználóknak)
+            if (!isGoogleUser) ...[
+              TextField(
+                controller: currentPasswordController,
+                obscureText: !_isCurrentPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: 'Current Password (required for password update)',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isCurrentPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isCurrentPasswordVisible = !_isCurrentPasswordVisible;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: passwordController,
+                obscureText: !_isPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: 'New Password (optional)',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // Mentés gomb
             ElevatedButton(
               onPressed: _updateProfile,
               child: const Text('Save'),

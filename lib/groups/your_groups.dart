@@ -59,30 +59,39 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
     }
 
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final groupIds = await fetchGroupIds();
-      List<Map<String, dynamic>> allItems = [];
+    if (user == null) return [];
 
-      for (String groupId in groupIds) {
-        final groupDoc = await FirebaseFirestore.instance.collection('shopping_lists').doc(groupId).get();
-        if (groupDoc.exists) {
-          final data = groupDoc.data();
-          if (data != null && data.containsKey('items')) {
-            allItems.addAll(List<Map<String, dynamic>>.from(data['items']));
-          }
+    final groupIds = await fetchGroupIds();
+    List<Map<String, dynamic>> userSelectedItems = [];
+
+    // Gyűjtsük össze az összes olyan elemet, amelyet a felhasználó kiválasztott
+    for (String groupId in groupIds) {
+      final groupDoc = await FirebaseFirestore.instance
+          .collection('shopping_lists')
+          .doc(groupId)
+          .get();
+
+      if (groupDoc.exists) {
+        final data = groupDoc.data();
+        if (data != null && data.containsKey('items')) {
+          final items = List<Map<String, dynamic>>.from(data['items']);
+          // Csak azokat az elemeket vesszük fel, amelyeket a felhasználó kiválasztott
+          final selectedItems = items.where((item) {
+            return item['isChecked'] == true &&
+                item['selectedBy'] == user.email;
+          }).toList();
+          userSelectedItems.addAll(selectedItems);
         }
       }
-
-      final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
-      await userDocRef.set({'items': allItems}, SetOptions(merge: true));
-
-      final userDoc = await userDocRef.get();
-      final data = userDoc.data();
-      if (data != null && data.containsKey('items')) {
-        return List<Map<String, dynamic>>.from(data['items']);
-      }
     }
-    return [];
+
+    // Mentsük a felhasználó kiválasztott elemeit a user_shopping_lists kollekcióba
+    final userDocRef = FirebaseFirestore.instance
+        .collection('user_shopping_lists')
+        .doc(user.uid);
+    await userDocRef.set({'items': userSelectedItems}, SetOptions(merge: true));
+
+    return userSelectedItems;
   }
 
   Map<String, dynamic> normalizeItem(Map<String, dynamic> item) {

@@ -1,13 +1,14 @@
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:io';
-
-import 'login.dart'; // Cseréld ki a saját bejelentkező képernyőd útvonalára
+import 'login.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class PrivacySecuritySettingsScreen extends StatefulWidget {
   const PrivacySecuritySettingsScreen({super.key});
@@ -20,8 +21,8 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
   bool _twoFactorEnabled = false;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  DateTime? _lastCodeRequestTime;
 
   @override
   void initState() {
@@ -46,11 +47,6 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
     final user = _auth.currentUser;
     if (user != null) {
       try {
-        String? fcmToken = await FirebaseMessaging.instance.getToken();
-        if (fcmToken == null) {
-          throw Exception('Failed to retrieve FCM token.');
-        }
-
         DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
         String deviceName;
         String? deviceModel;
@@ -81,10 +77,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
           'deviceModel': deviceModel,
           'osVersion': osVersion,
           'lastLogin': Timestamp.now(),
-          'token': fcmToken,
         });
-
-        print('Device info saved: $deviceName, $deviceModel, $osVersion, $fcmToken');
       } catch (e) {
         print('Error saving device info: $e');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -94,51 +87,162 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
     }
   }
 
-  Future<void> _toggleTwoFactorAuthentication(bool value) async {
-    if (value) {
-      await _showPhoneNumberDialog();
-    } else {
+  Future<void> _toggleTwoFactorAuthentication(bool enable) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+
+    if (email == null) {
+      print("User email is missing.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User email is missing.')),
+      );
+      return;
+    }
+
+    print("User is logged in: ${user?.uid}, email: $email");
+
+    if (enable) {
+      if (_lastCodeRequestTime != null &&
+          DateTime.now().difference(_lastCodeRequestTime!).inSeconds < 60) {
+        print("Rate limit: Please wait 60 seconds before requesting a new code.");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Please wait 60 seconds before requesting a new code.')),
+        );
+        return;
+      }
+
       try {
-        final user = _auth.currentUser;
-        if (user != null) {
-          final enrolledFactors = await user.multiFactor.getEnrolledFactors();
-          final phoneFactor = enrolledFactors.firstWhere(
-                (factor) => factor is PhoneMultiFactorInfo,
-            orElse: () => throw Exception('No phone factor found.'),
+        print("Calling sendMfaCode Cloud Function via HTTP...");
+        final url = 'https://us-central1-smartpantri-dc717.cloudfunctions.net/sendMfaCode';
+        print("Request URL: $url");
+        print("Request headers: {'Content-Type': 'application/json'}");
+        print("Request body: ${jsonEncode({'data': {'email': email}})}");
+
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'data': {
+              'email': email,
+            },
+          }),
+        );
+
+        print("Response status: ${response.statusCode}");
+        print("Response body: ${response.body}");
+
+        if (response.statusCode == 200) {
+          final result = jsonDecode(response.body);
+          print("sendMfaCode response: $result");
+          _lastCodeRequestTime = DateTime.now();
+
+          String? code = await _showEmailCodeDialog(email: email);
+          if (code == null) {
+            print("User cancelled code entry.");
+            return;
+          }
+
+          print("Calling verifyMfaCode Cloud Function via HTTP...");
+          final verifyResponse = await http.post(
+            Uri.parse('https://us-central1-smartpantri-dc717.cloudfunctions.net/verifyMfaCode'),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'data': {
+                'code': code,
+              },
+            }),
           );
-          await user.multiFactor.unenroll(factorUid: phoneFactor.uid);
-          setState(() {
-            _twoFactorEnabled = false;
-          });
-          await _saveSettings();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Two Factor Authentication disabled.')),
-          );
+
+          print("verifyMfaCode response status: ${verifyResponse.statusCode}");
+          print("verifyMfaCode response body: ${verifyResponse.body}");
+
+          if (verifyResponse.statusCode == 200) {
+            final verifyResult = jsonDecode(verifyResponse.body);
+            print("verifyMfaCode response: $verifyResult");
+
+            if (verifyResult['result']['success'] == true) {
+              setState(() => _twoFactorEnabled = true);
+              await _saveSettings();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('2FA enabled via email.')),
+              );
+            } else {
+              print("Invalid verification code received.");
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Invalid verification code.')),
+              );
+            }
+          } else {
+            print("verifyMfaCode failed with status: ${verifyResponse.statusCode}, body: ${verifyResponse.body}");
+            throw Exception('Failed to verify MFA code: ${verifyResponse.body}');
+          }
+        } else {
+          print("sendMfaCode failed with status: ${response.statusCode}, body: ${response.body}");
+          throw Exception('Failed to send MFA code: ${response.body}');
         }
       } catch (e) {
+        print("Error during 2FA setup: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error disabling 2FA: $e')),
+          SnackBar(content: Text('Error during 2FA setup: $e')),
+        );
+      }
+    } else {
+      bool? confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Disable 2FA'),
+            content: const Text('Are you sure you want to disable Two Factor Authentication?'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              TextButton(
+                child: const Text('Disable', style: TextStyle(color: Colors.red)),
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirmed == true) {
+        setState(() => _twoFactorEnabled = false);
+        await _saveSettings();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('2FA disabled.')),
         );
       }
     }
   }
 
-  Future<void> _showPhoneNumberDialog() async {
-    return showDialog<void>(
+  Future<String?> _showEmailCodeDialog({required String email}) async {
+    final TextEditingController codeController = TextEditingController();
+
+    return showDialog<String>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Enable Two Factor Authentication'),
+          title: const Text('Enter Email Verification Code'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Please enter your phone number to enable 2FA.'),
+              const Text('You have 10 minutes to enter the code before it expires.'),
+              const SizedBox(height: 16),
               TextField(
-                controller: _phoneNumberController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number (e.g., +1234567890)',
-                ),
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: '6-digit code'),
               ),
             ],
           ),
@@ -146,109 +250,61 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
             TextButton(
               child: const Text('Cancel'),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(null);
               },
             ),
             TextButton(
-              child: const Text('Verify'),
+              child: const Text('Resend Code'),
               onPressed: () async {
-                String phoneNumber = _phoneNumberController.text.trim();
-                if (phoneNumber.isEmpty || !phoneNumber.startsWith('+')) {
+                if (_lastCodeRequestTime != null &&
+                    DateTime.now().difference(_lastCodeRequestTime!).inSeconds < 60) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a valid phone number (e.g., +1234567890)')),
+                    const SnackBar(
+                        content: Text('Please wait 60 seconds before requesting a new code.')),
                   );
                   return;
                 }
-
-                Navigator.of(context).pop();
 
                 try {
-                  await _auth.currentUser?.multiFactor.getSession().then((session) async {
-                    await _auth.verifyPhoneNumber(
-                      multiFactorSession: session,
-                      phoneNumber: phoneNumber,
-                      verificationCompleted: (PhoneAuthCredential credential) async {
-                        await _auth.currentUser?.multiFactor.enroll(
-                          PhoneMultiFactorGenerator.getAssertion(credential),
-                        );
-                        setState(() {
-                          _twoFactorEnabled = true;
-                        });
-                        await _saveSettings();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Two Factor Authentication enabled.')),
-                        );
-                      },
-                      verificationFailed: (FirebaseAuthException e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Verification failed: $e')),
-                        );
-                      },
-                      codeSent: (String verificationId, int? resendToken) async {
-                        String? smsCode = await _showSmsCodeDialog();
-                        if (smsCode != null) {
-                          PhoneAuthCredential credential = PhoneAuthProvider.credential(
-                            verificationId: verificationId,
-                            smsCode: smsCode,
-                          );
-                          await _auth.currentUser?.multiFactor.enroll(
-                            PhoneMultiFactorGenerator.getAssertion(credential),
-                          );
-                          setState(() {
-                            _twoFactorEnabled = true;
-                          });
-                          await _saveSettings();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Two Factor Authentication enabled.')),
-                          );
-                        }
-                      },
-                      codeAutoRetrievalTimeout: (String verificationId) {},
-                    );
-                  });
+                  final callable = FirebaseFunctions.instance.httpsCallable('sendMfaCode');
+                  await callable.call(<String, dynamic>{'email': email});
+                  _lastCodeRequestTime = DateTime.now();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Code resent successfully.')),
+                  );
+                } on FirebaseFunctionsException catch (e) {
+                  String errorMessage;
+                  if (e.code == 'internal' &&
+                      e.message?.contains('Failed to send email') == true) {
+                    errorMessage = 'Failed to resend email. Please try again later.';
+                  } else {
+                    errorMessage = 'Error resending code: ${e.message}';
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(errorMessage)),
+                  );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error enabling 2FA: $e')),
+                    SnackBar(content: Text('Unexpected error resending code: $e')),
                   );
                 }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<String?> _showSmsCodeDialog() async {
-    final TextEditingController smsCodeController = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Enter SMS Code'),
-          content: TextField(
-            controller: smsCodeController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'SMS Code'),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
               },
             ),
             TextButton(
               child: const Text('Verify'),
               onPressed: () {
-                String smsCode = smsCodeController.text.trim();
-                if (smsCode.isEmpty) {
+                final code = codeController.text.trim();
+                if (code.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter the SMS code.')),
+                    const SnackBar(content: Text('Please enter the code.')),
                   );
-                  return;
+                } else if (code.length != 6 || !RegExp(r'^\d{6}$').hasMatch(code)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid 6-digit code.')),
+                  );
+                } else {
+                  Navigator.of(context).pop(code);
                 }
-                Navigator.of(context).pop(smsCode);
               },
             ),
           ],
@@ -257,7 +313,6 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
     );
   }
 
-  // Delete Account logika
   Future<void> _deleteAccount() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -267,14 +322,10 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
       return;
     }
 
-    // 1. Kérjünk megerősítést és jelszót a felhasználótól
     bool? confirmed = await _showDeleteConfirmationDialog();
-    if (confirmed != true) {
-      return;
-    }
+    if (confirmed != true) return;
 
     try {
-      // 2. Újra hitelesítjük a felhasználót a jelszóval
       String email = user.email ?? '';
       String password = _passwordController.text.trim();
 
@@ -285,25 +336,19 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
         return;
       }
 
-      // Újra hitelesítés
       AuthCredential credential = EmailAuthProvider.credential(
         email: email,
         password: password,
       );
       await user.reauthenticateWithCredential(credential);
 
-      // 3. Töröljük a Firestore-ban tárolt adatokat
       await _deleteUserData(user.uid);
 
-      // 4. Töröljük a felhasználó fiókját a Firebase Authenticationből
       await user.delete();
-
-      // 5. Kijelentkeztetjük a felhasználót
       await _auth.signOut();
 
-      // 6. Navigáljunk vissza a bejelentkező képernyőre
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()), // Cseréld ki a saját bejelentkező képernyődre
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
             (Route<dynamic> route) => false,
       );
 
@@ -363,21 +408,24 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
   }
 
   Future<void> _deleteUserData(String uid) async {
-    // Töröljük a sessions dokumentumot és az összes algyűjteményt (pl. devices)
+    // Töröld a felhasználó tokens al-kollekcióját
+    final tokensRef = _firestore.collection('users').doc(uid).collection('tokens');
+    final tokensSnapshot = await tokensRef.get();
+    for (var doc in tokensSnapshot.docs) {
+      await doc.reference.delete();
+    }
+
+    // Töröld a felhasználó sessions adatait
     final sessionsRef = _firestore.collection('sessions').doc(uid);
     final devicesRef = sessionsRef.collection('devices');
-
-    // Töröljük a devices algyűjtemény összes dokumentumát
     final devicesSnapshot = await devicesRef.get();
     for (var doc in devicesSnapshot.docs) {
       await doc.reference.delete();
     }
-
-    // Töröljük a sessions dokumentumot
     await sessionsRef.delete();
 
-    // Ha van users gyűjteményed, akkor azt is törölheted
-    // Példa: await _firestore.collection('users').doc(uid).delete();
+    // Töröld a felhasználó adatait a users kollekcióból
+    await _firestore.collection('users').doc(uid).delete();
   }
 
   @override
@@ -392,6 +440,14 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
               title: const Text('Two Factor Authentication (2FA)'),
               value: _twoFactorEnabled,
               onChanged: (value) {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please log in to use 2FA')),
+                  );
+                  return;
+                }
+                print("2FA Switch toggled: $value");
                 _toggleTwoFactorAuthentication(value);
               },
             ),
@@ -408,9 +464,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
             ),
             ListTile(
               title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                _deleteAccount();
-              },
+              onTap: _deleteAccount,
             ),
           ],
         ),
@@ -426,7 +480,6 @@ class LoggedInDevicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final firestore = FirebaseFirestore.instance;
-    final messaging = FirebaseMessaging.instance;
 
     if (user == null) {
       return const Scaffold(
@@ -463,7 +516,6 @@ class LoggedInDevicesScreen extends StatelessWidget {
               String deviceModel = device['deviceModel'] ?? 'Unknown';
               String osVersion = device['osVersion'] ?? 'Unknown';
               Timestamp lastLogin = device['lastLogin'] ?? Timestamp.now();
-              String token = device['token'] ?? '';
               String deviceId = device.id;
 
               return ListTile(
@@ -478,44 +530,28 @@ class LoggedInDevicesScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                trailing: FutureBuilder<String?>(
-                  future: messaging.getToken(),
-                  builder: (context, tokenSnapshot) {
-                    if (!tokenSnapshot.hasData) {
-                      return const CircularProgressIndicator();
+                trailing: TextButton(
+                  child: const Text(
+                    'Sign Out',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onPressed: () async {
+                    try {
+                      await firestore
+                          .collection('sessions')
+                          .doc(user.uid)
+                          .collection('devices')
+                          .doc(deviceId)
+                          .delete();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$deviceName signed out.')),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error signing out: $e')),
+                      );
                     }
-
-                    bool isCurrentDevice = tokenSnapshot.data == token;
-
-                    return isCurrentDevice
-                        ? const Text(
-                      'This Device',
-                      style: TextStyle(color: Colors.grey),
-                    )
-                        : TextButton(
-                      child: const Text(
-                        'Sign Out',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                      onPressed: () async {
-                        try {
-                          await firestore
-                              .collection('sessions')
-                              .doc(user.uid)
-                              .collection('devices')
-                              .doc(deviceId)
-                              .delete();
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('$deviceName signed out.')),
-                          );
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error signing out: $e')),
-                          );
-                        }
-                      },
-                    );
                   },
                 ),
               );

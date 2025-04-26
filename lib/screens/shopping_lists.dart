@@ -84,6 +84,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         'quantity': 1,
         'unit': selectedUnit,
         'isChecked': false,
+        'addedBy': 'guest',
       };
       setState(() {
         cartItems.add(cartItem);
@@ -100,6 +101,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           'quantity': 1,
           'unit': selectedUnit,
           'isChecked': false,
+          'addedBy': user.email,
         };
         setState(() {
           cartItems.add(cartItem);
@@ -126,74 +128,106 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   void toggleItemSelection(Map<String, dynamic> item) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
-      final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+    if (user == null) return;
 
-      setState(() {
-        if (item['isChecked'] == true) {
-          item['isChecked'] = false;
-          item.remove('selectedBy');
-          selectedItems.removeWhere((selectedItem) => selectedItem['id'] == item['id']);
-        } else {
-          item['isChecked'] = true;
-          item['selectedBy'] = user.email;
-          selectedItems.add(item);
-        }
-      });
+    if (item['isChecked'] == true && item['selectedBy'] != user.email) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('This item is already selected by ${item['selectedBy']}.'),
+        ),
+      );
+      return;
+    }
 
-      final groupDoc = await groupDocRef.get();
-      if (groupDoc.exists) {
-        final data = groupDoc.data();
-        if (data != null && data.containsKey('items')) {
-          final items = List<Map<String, dynamic>>.from(data['items']);
-          final itemIndex = items.indexWhere((existingItem) => existingItem['id'] == item['id']);
+    final groupDocRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+    final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
 
-          if (itemIndex != -1) {
-            items[itemIndex] = item;
-          } else {
-            items.add(item);
-          }
-
-          await groupDocRef.set({'items': items}, SetOptions(merge: true));
-        }
-      }
-
-      final userDoc = await userDocRef.get();
+    setState(() {
       if (item['isChecked'] == true) {
-        if (userDoc.exists) {
-          final data = userDoc.data();
-          if (data != null && data.containsKey('items')) {
-            final userItems = List<Map<String, dynamic>>.from(data['items']);
-            final userItemIndex = userItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
+        item['isChecked'] = false;
+        item.remove('selectedBy');
+        selectedItems.removeWhere((selectedItem) => selectedItem['id'] == item['id']);
+      } else {
+        item['isChecked'] = true;
+        item['selectedBy'] = user.email;
+        selectedItems.add(item);
+      }
+    });
 
-            if (userItemIndex != -1) {
-              userItems[userItemIndex] = item;
-            } else {
-              userItems.add(item);
-            }
+    final groupDoc = await groupDocRef.get();
+    if (groupDoc.exists) {
+      final data = groupDoc.data();
+      if (data != null && data.containsKey('items')) {
+        final items = List<Map<String, dynamic>>.from(data['items']);
+        final itemIndex = items.indexWhere((existingItem) => existingItem['id'] == item['id']);
 
-            await userDocRef.set({'items': userItems}, SetOptions(merge: true));
-          }
+        if (itemIndex != -1) {
+          items[itemIndex] = item;
         } else {
-          await userDocRef.set({
-            'items': [item]
-          });
+          items.add(item);
+        }
+
+        await groupDocRef.set({'items': items}, SetOptions(merge: true));
+      }
+    }
+
+    final userDoc = await userDocRef.get();
+    if (item['isChecked'] == true) {
+      if (userDoc.exists) {
+        final data = userDoc.data();
+        if (data != null && data.containsKey('items')) {
+          final userItems = List<Map<String, dynamic>>.from(data['items']);
+          final userItemIndex = userItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
+
+          if (userItemIndex != -1) {
+            userItems[userItemIndex] = item;
+          } else {
+            userItems.add(item);
+          }
+
+          await userDocRef.set({'items': userItems}, SetOptions(merge: true));
         }
       } else {
-        if (userDoc.exists) {
-          final data = userDoc.data();
-          if (data != null && data.containsKey('items')) {
-            final userItems = List<Map<String, dynamic>>.from(data['items']);
-            userItems.removeWhere((existingItem) => existingItem['id'] == item['id']);
-            await userDocRef.set({'items': userItems}, SetOptions(merge: true));
-          }
+        await userDocRef.set({
+          'items': [item]
+        });
+      }
+    } else {
+      if (userDoc.exists) {
+        final data = userDoc.data();
+        if (data != null && data.containsKey('items')) {
+          final userItems = List<Map<String, dynamic>>.from(data['items']);
+          userItems.removeWhere((existingItem) => existingItem['id'] == item['id']);
+          await userDocRef.set({'items': userItems}, SetOptions(merge: true));
         }
       }
     }
   }
 
   Future<void> removeItem(Map<String, dynamic> item) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final String? addedBy = item['addedBy'] ?? 'unknown';
+
+    if (widget.isGuest) {
+      if (addedBy != 'guest') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('You can only delete items you added.'),
+          ),
+        );
+        return;
+      }
+    } else {
+      if (user == null || addedBy != user.email) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('You can only delete items you added.'),
+          ),
+        );
+        return;
+      }
+    }
+
     if (widget.isGuest) {
       setState(() {
         cartItems.removeWhere((cartItem) => cartItem['id'] == item['id']);
@@ -202,7 +236,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       });
       await _saveGuestCart();
     } else {
-      final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final userDocRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
         final userDoc = await userDocRef.get();
@@ -237,6 +270,29 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   Future<void> editCartItem(BuildContext context, Map<String, dynamic> item) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final String? addedBy = item['addedBy'] ?? 'unknown';
+
+    if (widget.isGuest) {
+      if (addedBy != 'guest') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('You can only edit items you added.'),
+          ),
+        );
+        return;
+      }
+    } else {
+      if (user == null || addedBy != user.email) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('You can only edit items you added.'),
+          ),
+        );
+        return;
+      }
+    }
+
     final TextEditingController quantityController = TextEditingController(text: item['quantity'].toString());
     String selectedUnit = item['unit'];
 
@@ -469,6 +525,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 var cartItem = cartItems[index];
                 bool isSelected = cartItem['isChecked'] ?? false;
                 String? selectedBy = cartItem['selectedBy'];
+                final user = FirebaseAuth.instance.currentUser;
+                final String? addedBy = cartItem['addedBy'];
+
+                bool isEditable = !isSelected || (selectedBy == user?.email);
+                bool canEditItem = widget.isGuest ? (addedBy == 'guest') : (user != null && addedBy == user?.email);
 
                 return widget.isGuest
                     ? ListTile(
@@ -476,12 +537,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   subtitle: Text(
                     'Quantity: ${cartItem['quantity']} ${cartItem['unit']}' '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
                   ),
-                  trailing: IconButton(
+                  trailing: canEditItem
+                      ? IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () => editCartItem(context, cartItem),
-                  ),
+                  )
+                      : null,
                 )
-                    : Dismissible(
+                    : canEditItem
+                    ? Dismissible(
                   key: Key(cartItem['id'].toString()),
                   onDismissed: (direction) {
                     setState(() {
@@ -498,13 +562,30 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     subtitle: Text(
                       'Quantity: ${cartItem['quantity']} ${cartItem['unit']}' '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
                     ),
-                    onTap: () => editCartItem(context, cartItem),
+                    onTap: canEditItem ? () => editCartItem(context, cartItem) : null,
                     trailing: Checkbox(
                       value: isSelected,
-                      onChanged: (bool? value) {
+                      onChanged: isEditable
+                          ? (bool? value) {
                         toggleItemSelection(cartItem);
-                      },
+                      }
+                          : null,
                     ),
+                  ),
+                )
+                    : ListTile(
+                  title: Text(cartItem['name']),
+                  subtitle: Text(
+                    'Quantity: ${cartItem['quantity']} ${cartItem['unit']}' '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
+                  ),
+                  onTap: canEditItem ? () => editCartItem(context, cartItem) : null,
+                  trailing: Checkbox(
+                    value: isSelected,
+                    onChanged: isEditable
+                        ? (bool? value) {
+                      toggleItemSelection(cartItem);
+                    }
+                        : null,
                   ),
                 );
               },
