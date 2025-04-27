@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartpantri/screens/ai_chat_screen.dart';
-import 'package:smartpantri/screens/chat_screen.dart';
+import 'package:smartpantri/screens/group_and_ai_chat_screen.dart';
 import 'package:smartpantri/screens/theme_settings.dart';
 import 'package:smartpantri/services/app_state_provider.dart';
+import 'package:smartpantri/services/language_provider.dart';
 import 'package:smartpantri/services/storage_service.dart';
 import 'services/firebase_options.dart';
 import 'screens/welcome_screen.dart';
@@ -25,6 +27,9 @@ import 'package:smartpantri/screens/settings.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:smartpantri/models/data.dart';
+import 'package:smartpantri/groups/group_detail.dart';
+import 'package:smartpantri/generated/l10n.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
@@ -79,7 +84,7 @@ Future<void> main() async {
     }
   } catch (e) {
     print("Error initializing Firebase: $e");
-    return; // Ha a Firebase inicializálás sikertelen, ne folytassuk
+    return;
   }
 
   try {
@@ -96,12 +101,25 @@ Future<void> main() async {
 
   await initializeLocalNotifications();
 
-  final themeProvider = await ThemeProvider.loadFromPrefs();
-
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => themeProvider),
+        ChangeNotifierProvider<ThemeProvider>(
+          create: (_) => ThemeProvider(
+            isDarkMode: true,
+            primaryColor: Colors.blue,
+          ),
+        ),
+        ChangeNotifierProvider<LanguageProvider>(
+          create: (_) {
+            final languageProvider = LanguageProvider();
+            SharedPreferences.getInstance().then((prefs) {
+              final savedLocale = prefs.getString('locale') ?? 'en';
+              languageProvider.setLocale(Locale(savedLocale));
+            });
+            return languageProvider;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => AppStateProvider()),
       ],
       child: const MyApp(),
@@ -126,24 +144,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _loadGuestMode();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-      ThemeProvider.loadFromPrefs().then((newProvider) async {
-        await themeProvider.toggleDarkMode(newProvider.isDarkMode);
-        await themeProvider.setPrimaryColor(newProvider.primaryColor);
-
-        FirebaseAuth.instance.authStateChanges().listen((User? user) async {
-          if (user != null) {
-            print("User logged in: ${user.uid}, setting up FCM...");
-            await _setupFCM(context); // A _setupFCM már kezeli az aktuális user-t
-          } else {
-            print("User logged out, clearing guest mode and skipping FCM setup.");
-            await clearGuestMode();
-          }
-        });
-      }).catchError((e) {
-        print("Error loading theme preferences: $e");
-        themeProvider.toggleDarkMode(false);
-        themeProvider.setPrimaryColor(Colors.blue);
+      FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+        if (user != null) {
+          print("User logged in: ${user.uid}, setting up FCM...");
+          await _setupFCM(context);
+        } else {
+          print("User logged out, clearing guest mode and skipping FCM setup.");
+          await clearGuestMode();
+        }
       });
     });
   }
@@ -227,7 +235,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return;
       }
 
-      // Mindig az aktuális felhasználót használd
       User? user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         print("No user logged in, skipping FCM setup.");
@@ -325,38 +332,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         final existingTokens = await userTokensRef.get();
         final userDoc = await transaction.get(userRef);
 
-        // Ha a token már létezik az fcm_tokens-ban, de egy másik felhasználóhoz tartozik,
-        // akkor azt később egy Cloud Function segítségével tisztítjuk ki.
         if (tokenDoc.exists) {
           final tokenData = tokenDoc.data()!;
           final existingUserId = tokenData['userId'];
           if (existingUserId != userId) {
             print("Token $token is already associated with user $existingUserId. It will be reassigned to $userId.");
-            // Itt nem töröljük a másik felhasználó tokenjét, mert nincs rá jogosultságunk.
-            // Ehelyett egy Cloud Function-t hívhatunk, amely admin jogosultságokkal törli a tokent.
           }
         }
 
-        // Töröljük a saját régi tokenjeinket
         for (var tokenDoc in existingTokens.docs) {
           transaction.delete(tokenDoc.reference);
           print("Cleared old token ${tokenDoc['token']} from user $userId in tokens subcollection");
         }
 
-        // Új token hozzáadása a saját tokens almappához
         final newTokenRef = userTokensRef.doc();
         transaction.set(newTokenRef, {
           'token': token,
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-        // Az fcm_tokens kollekció frissítése
         transaction.set(tokenRef, {
           'userId': userId,
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-        // Régi fcmToken mező törlése a users dokumentumból, ha létezik
         if (userDoc.exists && userDoc.data()!.containsKey('fcmToken')) {
           transaction.update(userRef, {
             'fcmToken': FieldValue.delete(),
@@ -372,41 +371,235 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
+  Future<Group?> _fetchGroup(BuildContext context) async {
+    final args = ModalRoute.of(context)!.settings.arguments as Map?;
+    final groupId = args != null && args.containsKey('groupId') ? args['groupId'] as String : null;
+    if (groupId == null) {
+      print('No groupId provided in route arguments');
+      return null;
+    }
+    try {
+      final groupDoc = await FirebaseFirestore.instance.collection('groups').doc(groupId).get();
+      if (!groupDoc.exists) {
+        print('Group not found: $groupId');
+        return null;
+      }
+      return Group.fromJson(groupId, groupDoc.data()!);
+    } catch (e) {
+      print('Error fetching group: $e');
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        return MaterialApp(
-          title: 'SmartPantri',
-          theme: themeProvider.lightTheme,
-          darkTheme: themeProvider.darkTheme,
-          themeMode: themeProvider.themeMode,
-          home: const SplashScreen(),
-          routes: {
-            '/login': (context) => LoginScreen(setGuestMode: setGuestMode),
-            '/register': (context) => RegisterScreen(setGuestMode: setGuestMode),
-            '/welcomescreen': (context) => WelcomeScreen(setGuestMode: setGuestMode),
-            '/home': (context) => HomeScreen(isGuest: isGuestMode),
-            '/verify-email': (context) => isGuestMode
-                ? WelcomeScreen(setGuestMode: setGuestMode)
-                : const VerifyEmailScreen(),
-            '/group-chat': (context) => isGuestMode
-                ? WelcomeScreen(setGuestMode: setGuestMode)
-                : GroupChatScreen(
-              groupId: (ModalRoute.of(context)!.settings.arguments as Map)['groupId'] ?? 'groupId1',
-              isGuest: isGuestMode,
+    return FutureBuilder<void>(
+      future: Provider.of<ThemeProvider>(context, listen: false).loadThemeAsync(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const MaterialApp(
+            home: Scaffold(
+              body: Center(child: CircularProgressIndicator()),
             ),
-            '/ai-chat': (context) => const AIChatScreen(),
-            '/theme-settings': (context) => const ThemeSettingsScreen(),
-            '/settings': (context) => SettingsScreen(
-              isGuest: isGuestMode,
-            ),
-            '/notifications': (context) => isGuestMode
-                ? WelcomeScreen(setGuestMode: setGuestMode)
-                : NotificationsScreen(
-              groupId: ModalRoute.of(context)!.settings.arguments as String? ?? 'default_group_id',
-              isGuest: isGuestMode,
-            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          print("Error loading theme: ${snapshot.error}");
+          return MaterialApp(
+            title: 'SmartPantry',
+            theme: ThemeData.light(),
+            darkTheme: ThemeData.dark(),
+            themeMode: ThemeMode.system,
+            locale: Provider.of<LanguageProvider>(context).locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const SplashScreen(),
+            routes: {
+              '/login': (context) => LoginScreen(setGuestMode: setGuestMode),
+              '/register': (context) => RegisterScreen(setGuestMode: setGuestMode),
+              '/welcomescreen': (context) => WelcomeScreen(setGuestMode: setGuestMode),
+              '/home': (context) => HomeScreen(isGuest: isGuestMode),
+              '/verify-email': (context) => isGuestMode
+                  ? WelcomeScreen(setGuestMode: setGuestMode)
+                  : const VerifyEmailScreen(),
+              '/group-chat': (context) => isGuestMode
+                  ? WelcomeScreen(setGuestMode: setGuestMode)
+                  : FutureBuilder<Group?>(
+                future: _fetchGroup(context),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                    return Scaffold(
+                      body: Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.failedToLoadGroup(
+                              snapshot.error?.toString() ?? "Group not found"),
+                        ),
+                      ),
+                    );
+                  }
+                  final group = snapshot.data!;
+                  final isShared = group.sharedWith.length > 1;
+                  return GroupDetailScreen(
+                    group: group,
+                    isGuest: isGuestMode,
+                    isShared: isShared,
+                    arguments: {'selectedIndex': 2},
+                  );
+                },
+              ),
+              '/ai-chat': (context) => isGuestMode
+                  ? WelcomeScreen(setGuestMode: setGuestMode)
+                  : FutureBuilder<Group?>(
+                future: _fetchGroup(context),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                    return Scaffold(
+                      body: Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.failedToLoadGroup(
+                              snapshot.error?.toString() ?? "Group not found"),
+                        ),
+                      ),
+                    );
+                  }
+                  final group = snapshot.data!;
+                  final isShared = group.sharedWith.length > 1;
+                  return GroupDetailScreen(
+                    group: group,
+                    isGuest: isGuestMode,
+                    isShared: isShared,
+                    arguments: {'selectedIndex': 2},
+                  );
+                },
+              ),
+              '/theme-settings': (context) => const ThemeSettingsScreen(),
+              '/settings': (context) => SettingsScreen(
+                isGuest: isGuestMode,
+              ),
+              '/notifications': (context) => isGuestMode
+                  ? WelcomeScreen(setGuestMode: setGuestMode)
+                  : NotificationsScreen(
+                groupId: ModalRoute.of(context)!.settings.arguments as String? ??
+                    'default_group_id',
+                isGuest: isGuestMode,
+              ),
+            },
+          );
+        }
+
+        return Consumer<ThemeProvider>(
+          builder: (context, themeProvider, child) {
+            return MaterialApp(
+              title: AppLocalizations.of(context)?.appTitle ?? 'SmartPantry',
+              theme: themeProvider.lightTheme,
+              darkTheme: themeProvider.darkTheme,
+              themeMode: themeProvider.themeMode,
+              locale: Provider.of<LanguageProvider>(context).locale,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const SplashScreen(),
+              routes: {
+                '/login': (context) => LoginScreen(setGuestMode: setGuestMode),
+                '/register': (context) => RegisterScreen(setGuestMode: setGuestMode),
+                '/welcomescreen': (context) => WelcomeScreen(setGuestMode: setGuestMode),
+                '/home': (context) => HomeScreen(isGuest: isGuestMode),
+                '/verify-email': (context) => isGuestMode
+                    ? WelcomeScreen(setGuestMode: setGuestMode)
+                    : const VerifyEmailScreen(),
+                '/group-chat': (context) => isGuestMode
+                    ? WelcomeScreen(setGuestMode: setGuestMode)
+                    : FutureBuilder<Group?>(
+                  future: _fetchGroup(context),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                      return Scaffold(
+                        body: Center(
+                          child: Text(
+                            AppLocalizations.of(context)!.failedToLoadGroup(
+                                snapshot.error?.toString() ?? "Group not found"),
+                          ),
+                        ),
+                      );
+                    }
+                    final group = snapshot.data!;
+                    final isShared = group.sharedWith.length > 1;
+                    return GroupDetailScreen(
+                      group: group,
+                      isGuest: isGuestMode,
+                      isShared: isShared,
+                      arguments: {'selectedIndex': 2},
+                    );
+                  },
+                ),
+                '/ai-chat': (context) => isGuestMode
+                    ? WelcomeScreen(setGuestMode: setGuestMode)
+                    : FutureBuilder<Group?>(
+                  future: _fetchGroup(context),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                      return Scaffold(
+                        body: Center(
+                          child: Text(
+                            AppLocalizations.of(context)!.failedToLoadGroup(
+                                snapshot.error?.toString() ?? "Group not found"),
+                          ),
+                        ),
+                      );
+                    }
+                    final group = snapshot.data!;
+                    final isShared = group.sharedWith.length > 1;
+                    return GroupDetailScreen(
+                      group: group,
+                      isGuest: isGuestMode,
+                      isShared: isShared,
+                      arguments: {'selectedIndex': 2},
+                    );
+                  },
+                ),
+                '/theme-settings': (context) => const ThemeSettingsScreen(),
+                '/settings': (context) => SettingsScreen(
+                  isGuest: isGuestMode,
+                ),
+                '/notifications': (context) => isGuestMode
+                    ? WelcomeScreen(setGuestMode: setGuestMode)
+                    : NotificationsScreen(
+                  groupId: ModalRoute.of(context)!.settings.arguments as String? ??
+                      'default_group_id',
+                  isGuest: isGuestMode,
+                ),
+              },
+            );
           },
         );
       },
@@ -437,22 +630,39 @@ class _SplashScreenState extends State<SplashScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading image: $e')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)?.failedToLoadImage ?? 'Failed to load image'),
+          ),
         );
       }
     }
 
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => WelcomeScreen(
-            setGuestMode: (bool isGuest) {
-              final myAppState = context.findAncestorStateOfType<_MyAppState>();
-              myAppState?.setGuestMode(isGuest);
-            },
+      // Ellenőrizzük a bejelentkezési állapotot
+      User? user = FirebaseAuth.instance.currentUser;
+      final prefs = await SharedPreferences.getInstance();
+      bool isGuestMode = prefs.getBool('isGuestMode') ?? false;
+
+      if (user != null && !isGuestMode) {
+        // Ha a felhasználó be van jelentkezve, és nem vendég módban van
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(isGuest: false),
           ),
-        ),
-      );
+        );
+      } else {
+        // Ha nincs bejelentkezve, vagy vendég módban van
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => WelcomeScreen(
+              setGuestMode: (bool isGuest) {
+                final myAppState = context.findAncestorStateOfType<_MyAppState>();
+                myAppState?.setGuestMode(isGuest);
+              },
+            ),
+          ),
+        );
+      }
     }
   }
 

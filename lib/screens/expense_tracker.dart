@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:fl_chart/fl_chart.dart'; // fl_chart csomag
+import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+
+import '../services/theme_provider.dart';
 
 class ExpenseTrackerScreen extends StatefulWidget {
   final bool isGuest;
@@ -144,9 +147,11 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expense Tracker'),
+        backgroundColor: themeProvider.primaryColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_today),

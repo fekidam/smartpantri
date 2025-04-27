@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../services/theme_provider.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   final bool isGuest;
@@ -439,6 +442,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final filteredProducts = availableProducts.where((product) {
       return searchController.text.isEmpty ||
           product['name'].toLowerCase().startsWith(searchController.text.toLowerCase());
@@ -447,6 +451,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Shopping List'),
+        backgroundColor: themeProvider.primaryColor,
         actions: [
           if (!widget.isGuest)
             IconButton(

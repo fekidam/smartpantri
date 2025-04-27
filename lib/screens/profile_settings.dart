@@ -6,6 +6,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart'; // Provider import hozzáadása
+import '../services/theme_provider.dart'; // ThemeProvider import hozzáadása
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -40,7 +42,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _isLoading = true;
       });
 
-      // Ellenőrizzük, hogy Google fiókkal jelentkezett-e be
       isGoogleUser = user!.providerData.any((provider) => provider.providerId == 'google.com');
 
       DocumentSnapshot doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
@@ -72,13 +73,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _isLoading = true;
       });
 
-      // Mindig frissítjük a Firestore-ban tárolt adatokat
       await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
         'firstName': firstNameController.text,
         'lastName': lastNameController.text,
       });
 
-      // Csak nem-Google felhasználók számára frissítjük az emailt és jelszót
       if (!isGoogleUser) {
         if (emailController.text != user!.email) {
           await user!.verifyBeforeUpdateEmail(emailController.text);
@@ -237,6 +236,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ThemeProvider lekérése
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -250,12 +252,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile Settings')),
+      appBar: AppBar(
+        title: const Text('Profile Settings'),
+        backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Profilkép
             GestureDetector(
               onTap: _uploadProfilePicture,
               child: Stack(
@@ -279,8 +283,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Keresztnév (szerkeszthető)
             TextField(
               controller: firstNameController,
               decoration: const InputDecoration(
@@ -289,8 +291,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Vezetéknév (szerkeszthető)
             TextField(
               controller: lastNameController,
               decoration: const InputDecoration(
@@ -299,8 +299,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Email (nem szerkeszthető Google felhasználóknak)
             Text(
               'Email',
               style: TextStyle(
@@ -332,8 +330,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ),
             ],
             const SizedBox(height: 20),
-
-            // Jelszó mezők (csak nem-Google felhasználóknak)
             if (!isGoogleUser) ...[
               TextField(
                 controller: currentPasswordController,
@@ -376,8 +372,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ),
               const SizedBox(height: 20),
             ],
-
-            // Mentés gomb
             ElevatedButton(
               onPressed: _updateProfile,
               child: const Text('Save'),

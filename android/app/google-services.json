@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "533680516754-84hqq5aisu7nae6lr2rsaqmkprntujph.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smartpantri",
+            "certificate_hash": "1686c16ae03438858aa6a9f4345a8462b07e66e4"
+          }
+        },
+        {
           "client_id": "533680516754-i9082khcku7i80ro6cconle6e0pg7end.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

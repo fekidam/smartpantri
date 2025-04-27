@@ -2,256 +2,213 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class GroupChatScreen extends StatefulWidget {
+class GroupAndAIChatScreen extends StatefulWidget {
   final String groupId;
   final bool isGuest;
+  final bool isShared;
 
-  const GroupChatScreen({super.key, required this.groupId, required this.isGuest});
+  const GroupAndAIChatScreen({
+    Key? key,
+    required this.groupId,
+    required this.isGuest,
+    required this.isShared,
+  }) : super(key: key);
 
   @override
-  _GroupChatScreenState createState() => _GroupChatScreenState();
+  State<GroupAndAIChatScreen> createState() => _GroupAndAIChatScreenState();
 }
 
-class _GroupChatScreenState extends State<GroupChatScreen> {
+class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
+  bool _isAIChat = false;
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  @override
-  void initState() {
-    super.initState();
-    if (!widget.isGuest) {
-      _initializeChatDocument();
+  void _sendMessage() async {
+    if (_messageController.text.trim().isEmpty) return;
+
+    final text = _messageController.text.trim();
+    _messageController.clear();
+
+    if (_isAIChat) {
+      await _sendToAI(text);
+    } else {
+      await _sendToGroup(text);
     }
+
+    _scrollToBottom();
   }
 
-  Future<void> _initializeChatDocument() async {
-    final chatDocRef = _firestore.collection('chats').doc(widget.groupId);
+  Future<void> _sendToGroup(String text) async {
+    await _firestore
+        .collection('chats')
+        .doc(widget.groupId)
+        .collection('messages')
+        .add({
+      'sender': _auth.currentUser?.email ?? 'Guest',
+      'text': text,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
 
-    try {
-      final docSnapshot = await chatDocRef.get();
-      if (!docSnapshot.exists) {
-        await chatDocRef.set({
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-    } catch (e) {
-      print('Error initializing chat document: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error initializing chat: $e')),
+  Future<void> _sendToAI(String text) async {
+    await _firestore
+        .collection('chats')
+        .doc('ai-chat')
+        .collection(_auth.currentUser!.uid)
+        .add({
+      'sender': _auth.currentUser?.email ?? 'Guest',
+      'content': text,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Ide lehet AI választ is kérni, de most az AI válasz implementáció maradjon a jelenlegi AIChatScreen kódodban.
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
       );
     }
   }
 
-  void _sendMessage() async {
-    if (_messageController.text.trim().isNotEmpty && widget.groupId.isNotEmpty) {
-      final messageContent = _messageController.text.trim();
-      _messageController.clear();
+  Widget _buildMessages() {
+    if (_isAIChat) {
+      return StreamBuilder<QuerySnapshot>(
+        stream: _firestore
+            .collection('chats')
+            .doc('ai-chat')
+            .collection(_auth.currentUser!.uid)
+            .orderBy('timestamp', descending: false)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-      try {
-        await _firestore
+          final docs = snapshot.data!.docs;
+          return ListView.builder(
+            controller: _scrollController,
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final sender = data['sender'] ?? '';
+              final text = data['content'] ?? '';
+
+              final isMe = sender == _auth.currentUser?.email;
+
+              return Align(
+                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isMe ? Colors.green[100] : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(text),
+                ),
+              );
+            },
+          );
+        },
+      );
+    } else {
+      return StreamBuilder<QuerySnapshot>(
+        stream: _firestore
             .collection('chats')
             .doc(widget.groupId)
             .collection('messages')
-            .add({
-          'sender': _auth.currentUser?.email ?? 'Guest',
-          'text': messageContent,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-      } catch (e) {
-        print('Error saving message: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving message: $e')),
-        );
-      }
-    }
-  }
+            .orderBy('timestamp', descending: false)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-  void _deleteMessage(String messageId) async {
-    try {
-      await _firestore
-          .collection('chats')
-          .doc(widget.groupId)
-          .collection('messages')
-          .doc(messageId)
-          .delete();
-    } catch (e) {
-      print('Error deleting message: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting message: $e')),
+          final docs = snapshot.data!.docs;
+          return ListView.builder(
+            controller: _scrollController,
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final sender = data['sender'] ?? '';
+              final text = data['text'] ?? '';
+
+              final isMe = sender == _auth.currentUser?.email;
+
+              return Align(
+                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isMe ? Colors.green[100] : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(text),
+                ),
+              );
+            },
+          );
+        },
       );
     }
   }
 
-  void _editMessage(String messageId, String currentText) async {
-    final TextEditingController editController =
-    TextEditingController(text: currentText);
+  void _toggleChat() {
+    if (!widget.isShared) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You need a shared group to use this feature.')),
+      );
+      return;
+    }
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Message'),
-          content: TextField(
-            controller: editController,
-            decoration: const InputDecoration(hintText: 'Edit your message'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  await _firestore
-                      .collection('chats')
-                      .doc(widget.groupId)
-                      .collection('messages')
-                      .doc(messageId)
-                      .update({'text': editController.text});
-                  Navigator.pop(context);
-                } catch (e) {
-                  print('Error editing message: $e');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error editing message: $e')),
-                  );
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
+    setState(() {
+      _isAIChat = !_isAIChat;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Group Chat'), // Módosítva: csak "Group Chat" jelenik meg
-        automaticallyImplyLeading: true,
-        actions: [
-          if (!widget.isGuest)
-            IconButton(
-              icon: const Icon(Icons.smart_toy),
-              onPressed: () {
-                Navigator.pushNamed(context, '/ai-chat');
-              },
-              tooltip: 'Switch to AI Chat',
-            ),
-        ],
-      ),
-      body: widget.isGuest
-          ? const Center(
-        child: Text(
-          'Chat is not available in Guest Mode. Please log in to access this feature.',
-          textAlign: TextAlign.center,
+        title: Text(widget.isShared
+            ? (_isAIChat ? 'AI Chat' : 'Group Chat')
+            : 'AI Chat'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
-      )
-          : Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('chats')
-                  .doc(widget.groupId)
-                  .collection('messages')
-                  .orderBy('timestamp', descending: false)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error loading messages: ${snapshot.error}'));
-                }
-
-                final messages = snapshot.data!.docs;
-
-                return ListView.builder(
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index].data() as Map<String, dynamic>;
-                    final sender = message['sender'] ?? 'Unknown';
-                    final text = message['text'] ?? '';
-                    final messageId = messages[index].id;
-
-                    final isMe = sender == _auth.currentUser?.email;
-
-                    return GestureDetector(
-                      onLongPress: isMe
-                          ? () {
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (context) {
-                            return Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ListTile(
-                                  leading: const Icon(Icons.edit),
-                                  title: const Text('Edit'),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    _editMessage(messageId, text);
-                                  },
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.delete),
-                                  title: const Text('Delete'),
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    _deleteMessage(messageId);
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      }
-                          : null,
-                      child: Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isMe ? Colors.green[100] : Colors.grey[300],
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(12),
-                              topRight: const Radius.circular(12),
-                              bottomLeft: isMe ? const Radius.circular(12) : const Radius.circular(0),
-                              bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(12),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                sender,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: isMe ? Colors.green[700] : Colors.grey[700],
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                text,
-                                style: const TextStyle(color: Colors.black),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50),
+          child: Container(
+            color: Theme.of(context).primaryColor.withOpacity(0.9),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      _isAIChat ? 'AI Chat' : 'Group Chat',
+                      style: textTheme.titleMedium?.copyWith(color: Colors.white),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _toggleChat,
+                  icon: const Icon(Icons.smart_toy),
+                  color: Colors.white,
+                ),
+              ],
             ),
           ),
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(child: _buildMessages()),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -260,16 +217,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: const InputDecoration(
-                      hintText: 'Enter your message...',
+                      hintText: 'Enter message...',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(8.0)),
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
                       ),
                     ),
+                    maxLines: null,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send),
                   onPressed: _sendMessage,
+                  icon: const Icon(Icons.send),
                 ),
               ],
             ),

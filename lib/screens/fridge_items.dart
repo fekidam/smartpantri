@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state_provider.dart';
+import '../services/theme_provider.dart';
 
 class FridgeItemsScreen extends StatefulWidget {
   final bool isGuest;
@@ -233,21 +234,23 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     if (!hasAccess) {
       return Scaffold(
         appBar: AppBar(title: const Text('Access Denied')),
+        backgroundColor: themeProvider.primaryColor,
         body: const Center(
           child: Text('You do not have access to this group.'),
         ),
       );
     }
 
-    // AppStateProvider használata az alkalmazás állapotának lekérdezésére
     final appStateProvider = Provider.of<AppStateProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("What's in the Fridge?"),
+        backgroundColor: themeProvider.primaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

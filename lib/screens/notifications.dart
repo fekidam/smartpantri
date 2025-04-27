@@ -5,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../services/theme_provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final String groupId;
@@ -130,71 +132,77 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        automaticallyImplyLeading: false,
-      ),
-      body: widget.isGuest
-          ? const Center(
-        child: Text(
-          'Notifications are not available in Guest Mode. Please log in to access this feature.',
-          textAlign: TextAlign.center,
-        ),
-      )
-          : StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('notifications')
-            .where('groupId', isEqualTo: widget.groupId)
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Text('Error: ${snapshot.error}');
-          }
-          if (snapshot.data?.docs.isEmpty ?? true) {
-            return const Center(child: Text('No notifications found.'));
-          }
-          return ListView(
-            children: snapshot.data!.docs.map((DocumentSnapshot document) {
-              Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Notifications'),
+            backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
+            foregroundColor: Colors.white,
+            automaticallyImplyLeading: false,
+          ),
+          body: widget.isGuest
+              ? const Center(
+            child: Text(
+              'Notifications are not available in Guest Mode. Please log in to access this feature.',
+              textAlign: TextAlign.center,
+            ),
+          )
+              : StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('notifications')
+                .where('groupId', isEqualTo: widget.groupId)
+                .orderBy('timestamp', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              }
+              if (snapshot.data?.docs.isEmpty ?? true) {
+                return const Center(child: Text('No notifications found.'));
+              }
+              return ListView(
+                children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                  Map<String, dynamic> data = document.data() as Map<String, dynamic>;
 
-              DateTime? timestamp = (data['timestamp'] != null)
-                  ? (data['timestamp'] as Timestamp).toDate()
-                  : null;
+                  DateTime? timestamp = (data['timestamp'] != null)
+                      ? (data['timestamp'] as Timestamp).toDate()
+                      : null;
 
-              return ListTile(
-                leading: const Icon(Icons.notifications, color: Colors.blue),
-                title: Text(data['message'] ?? 'No message'),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sender: ${data['sender'] ?? 'Unknown'}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  return ListTile(
+                    leading: const Icon(Icons.notifications, color: Colors.blue),
+                    title: Text(data['message'] ?? 'No message'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sender: ${data['sender'] ?? 'Unknown'}',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          timestamp != null
+                              ? DateFormat('yyyy/MM/dd HH:mm').format(timestamp)
+                              : 'No timestamp available',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
                     ),
-                    Text(
-                      timestamp != null
-                          ? DateFormat('yyyy/MM/dd HH:mm').format(timestamp)
-                          : 'No timestamp available',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
+                  );
+                }).toList(),
               );
-            }).toList(),
-          );
-        },
-      ),
-      floatingActionButton: widget.isGuest
-          ? null
-          : FloatingActionButton(
-        onPressed: _showNotificationOptions,
-        child: const Icon(Icons.add),
-      ),
+            },
+          ),
+          floatingActionButton: widget.isGuest
+              ? null
+              : FloatingActionButton(
+            onPressed: _showNotificationOptions,
+            child: const Icon(Icons.add),
+          ),
+        );
+      },
     );
   }
 }

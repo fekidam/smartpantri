@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,9 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'dart:io';
-import 'login.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:provider/provider.dart'; // Provider import hozzáadása
+import '../services/theme_provider.dart'; // ThemeProvider import hozzáadása
+import 'login.dart';
 
 class PrivacySecuritySettingsScreen extends StatefulWidget {
   const PrivacySecuritySettingsScreen({super.key});
@@ -408,14 +410,12 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
   }
 
   Future<void> _deleteUserData(String uid) async {
-    // Töröld a felhasználó tokens al-kollekcióját
     final tokensRef = _firestore.collection('users').doc(uid).collection('tokens');
     final tokensSnapshot = await tokensRef.get();
     for (var doc in tokensSnapshot.docs) {
       await doc.reference.delete();
     }
 
-    // Töröld a felhasználó sessions adatait
     final sessionsRef = _firestore.collection('sessions').doc(uid);
     final devicesRef = sessionsRef.collection('devices');
     final devicesSnapshot = await devicesRef.get();
@@ -424,14 +424,19 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
     }
     await sessionsRef.delete();
 
-    // Töröld a felhasználó adatait a users kollekcióból
     await _firestore.collection('users').doc(uid).delete();
   }
 
   @override
   Widget build(BuildContext context) {
+    // ThemeProvider lekérése
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy and Security')),
+      appBar: AppBar(
+        title: const Text('Privacy and Security'),
+        backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
@@ -480,15 +485,24 @@ class LoggedInDevicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final firestore = FirebaseFirestore.instance;
+    // ThemeProvider lekérése
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('User not logged in.')),
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Logged In Devices'),
+          backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+        ),
+        body: const Center(child: Text('User not logged in.')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Logged In Devices')),
+      appBar: AppBar(
+        title: const Text('Logged In Devices'),
+        backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: firestore
             .collection('sessions')

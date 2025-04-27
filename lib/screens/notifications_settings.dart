@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:provider/provider.dart'; // Provider import hozzáadása
+import '../services/theme_provider.dart'; // ThemeProvider import hozzáadása
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -38,8 +40,7 @@ class _NotificationsSettingsScreenState extends State<NotificationSettingsScreen
 
   void _configureFCM() {
     if (!notificationsEnabled) {
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      });
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {});
       return;
     }
 
@@ -68,8 +69,14 @@ class _NotificationsSettingsScreenState extends State<NotificationSettingsScreen
 
   @override
   Widget build(BuildContext context) {
+    // ThemeProvider lekérése
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(
+        title: const Text('Notifications'),
+        backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(

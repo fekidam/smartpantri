@@ -179,6 +179,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Your Groups"),
+        backgroundColor: Colors.grey[800], // Fixed dark grey color
+        foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
       ),
       body: Column(

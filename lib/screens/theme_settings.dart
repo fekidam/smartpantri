@@ -16,12 +16,13 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
-        // Ellenőrizzük, hogy vendég módban vagyunk-e
         bool isGuest = FirebaseAuth.instance.currentUser == null;
 
         return Scaffold(
           appBar: AppBar(
             title: const Text('Theme and Appearance'),
+            backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
+            foregroundColor: Colors.white,
           ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),

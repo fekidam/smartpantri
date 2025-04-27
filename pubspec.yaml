@@ -1,13 +1,16 @@
 name: smartpantri
 description: "A new Flutter project."
-publish_to: 'none'  # This prevents accidental publishing to pub.dev.
+publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
   sdk: '>=3.4.3 <4.0.0'
+
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.6
   shared_preferences: ^2.0.6
@@ -41,22 +44,15 @@ dependencies:
   timezone: ^0.10.0
   flutter_timezone: ^4.1.0
   fl_chart: ^0.71.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
- 
+
 flutter:
   uses-material-design: true
   assets:
     - apikeys.env
     - assets/family_shopping_image.png
-
-
-  # Example of how to add fonts (currently commented out)
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
+  generate: true

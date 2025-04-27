@@ -94,6 +94,35 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
     return userSelectedItems;
   }
 
+  // Helper method to convert hex string to Color
+  Color _hexToColor(String hexColor) {
+    try {
+      hexColor = hexColor.replaceAll('#', '');
+      if (hexColor.length == 6) {
+        hexColor = 'FF$hexColor'; // Add alpha channel if not present
+      }
+      return Color(int.parse('0x$hexColor'));
+    } catch (e) {
+      print('Error parsing color: $hexColor, defaulting to blue');
+      return Colors.blue; // Fallback color in case of parsing error
+    }
+  }
+
+  Future<Color> _getGroupColor() async {
+    final groupIds = await fetchGroupIds();
+    if (groupIds.isNotEmpty) {
+      final groupDoc = await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(groupIds.first)
+          .get();
+      if (groupDoc.exists) {
+        final groupData = groupDoc.data() as Map<String, dynamic>;
+        return _hexToColor(groupData['color'] ?? '0000FF');
+      }
+    }
+    return Colors.blue; // Fallback color
+  }
+
   Map<String, dynamic> normalizeItem(Map<String, dynamic> item) {
     return {
       'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -368,64 +397,78 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Aggregated Shopping List'),
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: fetchUserItems(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No items in the consolidated list."));
-          }
+    return FutureBuilder<Color>(
+      future: _getGroupColor(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final groupColor = snapshot.data ?? Colors.blue;
 
-          final items = snapshot.data!;
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Aggregated Shopping List'),
+            backgroundColor: groupColor, // Use group's color
+            foregroundColor: Colors.white,
+          ),
+          body: FutureBuilder<List<Map<String, dynamic>>>(
+            future: fetchUserItems(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text("No items in the consolidated list."));
+              }
 
-          return ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = normalizeItem(items[index]);
-              final isPurchased = item['isPurchased'] ?? false;
+              final items = snapshot.data!;
 
-              return ListTile(
-                title: Text(item['name']),
-                subtitle: Text(
-                  'Quantity: ${item['quantity']} ${item['unit']}\nPrice: ${item['price'] ?? 'N/A'} Ft',
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        isPurchased ? Icons.check : Icons.check_box_outline_blank,
-                        color: isPurchased ? Colors.green : Colors.grey,
-                      ),
-                      onPressed: () async {
-                        await toggleItemStatus(item);
-                      },
+              return ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = normalizeItem(items[index]);
+                  final isPurchased = item['isPurchased'] ?? false;
+
+                  return ListTile(
+                    title: Text(item['name']),
+                    subtitle: Text(
+                      'Quantity: ${item['quantity']} ${item['unit']}\nPrice: ${item['price'] ?? 'N/A'} Ft',
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () {
-                        editItem(context, item, index);
-                      },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            isPurchased ? Icons.check : Icons.check_box_outline_blank,
+                            color: isPurchased ? Colors.green : Colors.grey,
+                          ),
+                          onPressed: () async {
+                            await toggleItemStatus(item);
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () {
+                            editItem(context, item, index);
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            await removeItem(item);
+                          },
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () async {
-                        await removeItem(item);
-                      },
-                    ),
-                  ],
-                ),
+                  );
+                },
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
