@@ -1,0 +1,497 @@
+{
+"@@locale": "en",
+"appTitle": "SmartPantry",
+"languageAndRegion": "Language and Region",
+"selectLanguage": "Select Language",
+"selectRegion": "Select Region",
+"english": "English",
+"hungarian": "Hungarian",
+"usa": "USA",
+"hungary": "Hungary",
+"recipeSuggestions": "Recipe Suggestions",
+"noRecipesAvailable": "No recipes available",
+"viewDetails": "View Details",
+"failedToLoadImage": "Failed to load recipe image. Please check your connection.",
+"failedToLoadGroup": "Error loading group: {error}",
+"logIn": "Log In",
+"register": "Register",
+"continueWithGoogle": "Continue with Google",
+"continueAsGuest": "Continue as Guest",
+"continuingAsGuest": "Continuing as Guest",
+"googleSignInCancelled": "Google sign-in cancelled.",
+"googleSignInError": "Google sign-in error: {error}",
+"enterYourEmail": "Enter your email",
+"password": "Password",
+"pleaseFillInBothFields": "Please fill in both fields!",
+"pleaseVerifyYourEmail": "Please verify your email address to log in.",
+"userNotFound": "User not found.",
+"wrongPassword": "Invalid password.",
+"invalidEmail": "Invalid email address.",
+"loginError": "Login error: {error}",
+"dontHaveAnAccountRegister": "Don't have an account? Register",
+"firstName": "First Name",
+"lastName": "Last Name",
+"email": "Email",
+"confirmPassword": "Confirm Password",
+"selectBirthDate": "Select Birth Date",
+"firstNameRequired": "First Name is required.",
+"lastNameRequired": "Last Name is required.",
+"emailRequired": "Email is required.",
+"invalidEmailFormat": "Please enter a valid email address.",
+"passwordRequired": "Password is required.",
+"passwordTooShort": "Password must be at least 6 characters long.",
+"confirmPasswordRequired": "Please confirm your password.",
+"passwordsDoNotMatch": "Passwords do not match.",
+"emailAlreadyInUse": "This email address is already in use.",
+"weakPassword": "The password is too weak.",
+"registrationError": "An error occurred during registration.",
+"unknownError": "An unknown error occurred.",
+"verifyEmail": "Verify Email",
+"verificationEmailSent": "A verification email has been sent to your email address.",
+"iHaveVerifiedMyEmail": "I have verified my email",
+"pleaseVerifyYourEmailFirst": "Please verify your email first.",
+"yourGroups": "Your Groups",
+"demoGroup": "Demo Group",
+"noGroupsFound": "No groups found",
+"shared": "Shared",
+"editGroup": "Edit Group",
+"groupName": "Group Name",
+"groupTagColor": "Group Tag Color",
+"cancel": "Cancel",
+"save": "Save",
+"groupUpdatedSuccessfully": "Group updated successfully",
+"groupDeleted": "Group deleted",
+"errorFetchingGroups": "Error fetching groups: {error}",
+"viewYourGroups": "View Your Groups",
+"home": "Home",
+"recipes": "Recipes",
+"chat": "Chat",
+"notifications": "Notifications",
+"profile": "Profile",
+"featureRequiresLogin": "This feature requires login",
+"createNewGroup": "Create New Group",
+"selectColor": "Select Color",
+"addGroup": "Add Group",
+"pleaseEnterGroupName": "Please enter a group name.",
+"userNotLoggedIn": "User not logged in",
+"failedToCreateGroup": "Failed to create group. Please try again.",
+"guestModeRestriction": "Creating groups is not available in Guest Mode. Please log in to access this feature.",
+"shareGroup": "Share Group",
+"enterEmailToShareWith": "Enter email to share with",
+"pleaseEnterEmailAddress": "Please enter an email address.",
+"groupSharedSuccessfully": "Group shared successfully! The user has been notified.",
+"errorSharingGroup": "Error sharing group: {error}",
+"aggregatedShoppingList": "Aggregated Shopping List",
+"noItemsInConsolidatedList": "No items in the consolidated list.",
+"quantityLabel": "Quantity",
+"priceLabel": "Price",
+"unitLabel": "Unit",
+"unknownItem": "Unknown",
+"editItem": "Edit: {itemName}",
+"currencySymbol": "Ft",
+"notAvailable": "N/A",
+"homeTitle": "Home",
+"expenseTracker": "Expense Tracker",
+"whatsInTheFridge": "What's in the Fridge?",
+"shoppingList": "Shopping List",
+"monthlySummary": "Monthly Summary",
+"totalExpense": "Total Expense",
+"byUsers": "By Users:",
+"ok": "OK",
+"noExpensesInGuestMode": "No expenses available in guest mode.",
+"noExpensesFound": "No expenses found.",
+"accessDenied": "Access Denied",
+"noAccessToGroup": "You do not have access to this group.",
+"noItemsFoundInFridge": "No items found in the fridge.",
+"itemExpiringSoon": "Item Expiring Soon",
+"itemExpiringMessage": "{itemName} is expiring on {expirationDate}!",
+"expiration": "Expiration",
+"setExpirationDateTime": "Set Expiration Date and Time",
+"errorSavingItem": "Error saving item",
+"expires": "Expires",
+"noName": "No name",
+"servingsLabel": "Servings",
+"ingredientsLabel": "Ingredients",
+"instructionsLabel": "Instructions",
+"noInstructionsAvailable": "No instructions available",
+"failedToLoadRecipeDetails": "Failed to load recipe details",
+"aiChat": "AI Chat",
+"groupChat": "Group Chat",
+"typeAMessage": "Type a message...",
+"enterMessage": "Enter message...",
+"errorSendingMessage": "Error sending message: {error}",
+"needSharedGroupForFeature": "You need a shared group to use this feature.",
+"featureOnlyInSharedGroups": "This feature is only available in shared groups.",
+"switchChat": "Switch Chat",
+"notificationsNotAvailableInGuestMode": "Notifications are not available in Guest Mode. Please log in to access this feature.",
+"noNotificationsFound": "No notifications found.",
+"errorLoadingNotifications": "Error loading notifications: {error}",
+"goingShopping": "Going Shopping",
+"whatsMissing": "What's Missing?",
+"whosGoingShopping": "Who's Going Shopping?",
+"iAmGoingShoppingToday": "I am going shopping today.",
+"whatsMissingFromShoppingList": "What's missing from the shopping list?",
+"whosGoingShoppingToday": "Who's going shopping today?",
+"sender": "Sender: {sender}",
+"noMessage": "No message",
+"noTimestampAvailable": "No timestamp available",
+"settings": "Settings",
+"profileSettings": "Profile Settings",
+"privacyAndSecurity": "Privacy and Security",
+"themeAndAppearance": "Theme and Appearance",
+"returnToWelcomeScreen": "Return to Welcome Screen",
+"logOut": "Log out",
+"errorLoggingOut": "Error logging out: {error}",
+"guestModeSettingsNote": "Note: Guest mode settings are saved locally on this device.",
+"darkMode": "Dark Mode",
+"pickAColor": "Pick a Color",
+"currentColor": "Current color",
+"errorSavingDarkMode": "Error saving dark mode: {error}",
+"errorSavingColor": "Error saving color: {error}",
+"pleaseLogInToEditProfile": "Please log in to edit your profile.",
+"cropImage": "Crop Image",
+"currentPasswordLabel": "Current Password (required for password update)",
+"newPasswordLabel": "New Password (optional)",
+"verificationEmailSent": "Verification email sent. Please check your inbox.",
+"passwordTooShortError": "Password must be at least 6 characters long.",
+"currentPasswordRequiredError": "Please enter your current password to update the new password.",
+"profileUpdated": "Your Profile is Updated!",
+"somethingWentWrong": "Something went wrong: {error}",
+"imageTooLarge": "Image too large. Max 2MB.",
+"profilePictureUpdated": "Profile picture updated successfully!",
+"errorUploadingImage": "Error uploading image: {error}",
+"managedByGoogle": "Managed by Google",
+"twoFactorAuthentication": "Two Factor Authentication (2FA)",
+"loggedInDevices": "Logged In Devices",
+"deleteAccount": "Delete Account",
+"confirmDeleteAccount": "Are you sure you want to delete your account? This action cannot be undone.",
+"pleaseLogInToUse2FA": "Please log in to use 2FA",
+"errorSavingDeviceInfo": "Error saving device info: {error}",
+"userEmailMissing": "User email is missing.",
+"wait60SecondsForNewCode": "Please wait 60 seconds before requesting a new code.",
+"disable2FA": "Disable 2FA",
+"confirmDisable2FA": "Are you sure you want to disable Two Factor Authentication?",
+"disable": "Disable",
+"twoFAEnabled": "2FA enabled via email.",
+"invalidVerificationCode": "Invalid verification code.",
+"twoFADisabled": "2FA disabled.",
+"errorDuring2FASetup": "Error during 2FA setup: {error}",
+"enterEmailVerificationCode": "Enter Email Verification Code",
+"codeExpirationNote": "You have 10 minutes to enter the code before it expires.",
+"sixDigitCodeLabel": "6-digit code",
+"resendCode": "Resend Code",
+"verify": "Verify",
+"pleaseEnterCode": "Please enter the code.",
+"invalidCodeError": "Please enter a valid 6-digit code.",
+"codeResentSuccessfully": "Code resent successfully.",
+"failedToResendEmail": "Failed to resend email. Please try again later.",
+"errorResendingCode": "Error resending code: {error}",
+"unexpectedErrorResendingCode": "Unexpected error resending code: {error}",
+"noUserLoggedIn": "No user is currently logged in.",
+"emailOrPasswordEmpty": "Email or password cannot be empty.",
+"enterPasswordToConfirm": "Enter your password to confirm",
+"pleaseEnterPassword": "Please enter your password.",
+"accountDeleted": "Account successfully deleted.",
+"errorDeletingAccount": "Error deleting account: {error}",
+"userNotLoggedInError": "User not logged in.",
+"noLoggedInDevicesFound": "No logged in devices found.",
+"errorLoadingDevices": "Error loading devices: {error}",
+"osLabel": "OS: {osVersion}",
+"lastLoginLabel": "Last Login: {lastLogin}",
+"signOut": "Sign Out",
+"deviceSignedOut": "{deviceName} signed out.",
+"errorSigningOut": "Error signing out: {error}",
+"enableNotifications": "Enable Notifications",
+"messageNotifications": "Message Notifications",
+"updateNotifications": "Notifications on Updates",
+"selectAllergies": "Select Allergies",
+"selectAll": "Select All",
+"deselectAll": "Deselect All",
+"allergyDairy": "Dairy",
+"allergyEgg": "Egg",
+"allergyGluten": "Gluten",
+"allergyPeanut": "Peanut",
+"allergySeafood": "Seafood",
+"allergySesame": "Sesame",
+"allergyShellfish": "Shellfish",
+"allergySoy": "Soy",
+"allergySulfite": "Sulfite",
+"allergyTreeNut": "Tree Nut",
+"allergyWheat": "Wheat",
+"guestCartLimitMessage": "Guest users can only add up to {limit} items. Please log in to add more.",
+"itemAlreadySelectedBy": "This item is already selected by {selectedBy}.",
+"onlyDeleteOwnItems": "You can only delete items you added.",
+"onlyEditOwnItems": "You can only edit items you added.",
+"searchForProducts": "Search for products",
+"shoppingCart": "Shopping Cart",
+"itemRemoved": "{itemName} removed",
+"selectedBy": "Selected by: {selectedBy}",
+"unitKg": "kg",
+"unitG": "g",
+"unitPcs": "pcs",
+"unitLiters": "liters",
+"addNewProduct": "Add New Product",
+"nameLabelEn": "Name (English, optional)",
+"nameLabelHu": "Name (Hungarian)",
+"categoryLabelEn": "Category (English, optional)",
+"categoryLabelHu": "Category (Hungarian)",
+"fillAllFields": "Please fill in all required fields!",
+"productAdded": "Product added successfully!",
+"optionalFieldsNote": "English fields are optional when using Hungarian.",
+"fillAllFields": "Please fill all fields!",
+  "fillAtLeastOneName": "Please fill at least one name (Hungarian or English)!",
+  "fillAtLeastOneCategory": "Please fill at least one category (Hungarian or English)!",
+  "fillHungarianName": "Please fill the Hungarian name!",
+  "fillHungarianCategory": "Please fill the Hungarian category!",
+  "fillEnglishName": "Please fill the English name!",
+  "fillEnglishCategory": "Please fill the English category!",
+  "addNewProduct": "Add New Product",
+  "nameLabelHu": "Name (Hungarian)",
+  "nameLabelEn": "Name (English)",
+  "categoryLabelHu": "Category (Hungarian)",
+  "categoryLabelEn": "Category (English)",
+  "unitLabel": "Unit",
+  "unitKg": "kg",
+  "unitG": "g",
+  "unitPcs": "pcs",
+  "unitLiters": "liters",
+  "cancel": "Cancel",
+  "save": "Save",
+  "userNotLoggedIn": "User is not logged in!",
+  "productAdded": "Product added successfully!",
+"@failedToLoadGroup": {
+"description": "Error message when failing to load a group",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@googleSignInError": {
+"description": "Error message for Google sign-in failure",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@loginError": {
+"description": "Error message for login failure",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorFetchingGroups": {
+"description": "Error message when failing to fetch groups",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorSharingGroup": {
+"description": "Error message when failing to share a group",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@editItem": {
+"description": "Title for the edit item dialog",
+"placeholders": {
+"itemName": {
+"type": "String"
+}
+}
+},
+"@itemExpiringMessage": {
+"description": "Notification message for item expiration",
+"placeholders": {
+"itemName": {
+"type": "String"
+},
+"expirationDate": {
+"type": "String"
+}
+}
+},
+"@errorSendingMessage": {
+"description": "Error message when failing to send a message",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorLoadingNotifications": {
+"description": "Error message when failing to load notifications",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@sender": {
+"description": "Label for the sender of a notification",
+"placeholders": {
+"sender": {
+"type": "String"
+}
+}
+},
+"@errorLoggingOut": {
+"description": "Error message when failing to log out",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorSavingDarkMode": {
+"description": "Error message when failing to save dark mode",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorSavingColor": {
+"description": "Error message when failing to save color",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@somethingWentWrong": {
+"description": "Error message for generic errors",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorUploadingImage": {
+"description": "Error message when failing to upload image",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorSavingDeviceInfo": {
+"description": "Error message when failing to save device info",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorDuring2FASetup": {
+"description": "Error message during 2FA setup",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorResendingCode": {
+"description": "Error message when failing to resend code",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@unexpectedErrorResendingCode": {
+"description": "Unexpected error when resending code",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorDeletingAccount": {
+"description": "Error message when failing to delete account",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorLoadingDevices": {
+"description": "Error message when failing to load devices",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@errorSigningOut": {
+"description": "Error message when failing to sign out",
+"placeholders": {
+"error": {
+"type": "String"
+}
+}
+},
+"@deviceSignedOut": {
+"description": "Message when a device is signed out",
+"placeholders": {
+"deviceName": {
+"type": "String"
+}
+}
+},
+"@osLabel": {
+"description": "Label for OS version",
+"placeholders": {
+"osVersion": {
+"type": "String"
+}
+}
+},
+"@lastLoginLabel": {
+"description": "Label for last login time",
+"placeholders": {
+"lastLogin": {
+"type": "String"
+}
+}
+},
+"@guestCartLimitMessage": {
+"description": "Message when guest user reaches cart limit",
+"placeholders": {
+"limit": {
+"type": "int"
+}
+}
+},
+"@itemAlreadySelectedBy": {
+"description": "Message when an item is already selected by another user",
+"placeholders": {
+"selectedBy": {
+"type": "String"
+}
+}
+},
+"@itemRemoved": {
+"description": "Message when an item is removed from the cart",
+"placeholders": {
+"itemName": {
+"type": "String"
+}
+}
+},
+"@selectedBy": {
+"description": "Label for who selected an item",
+"placeholders": {
+"selectedBy": {
+"type": "String"
+}
+}
+}
+}

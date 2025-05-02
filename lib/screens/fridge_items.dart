@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state_provider.dart';
 import '../services/theme_provider.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class FridgeItemsScreen extends StatefulWidget {
   final bool isGuest;
@@ -19,8 +20,7 @@ class FridgeItemsScreen extends StatefulWidget {
 
 class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
   bool hasAccess = false;
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   final Set<int> scheduledNotifications = {};
 
   @override
@@ -70,7 +70,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
         'quantity': '1',
         'unit': 'liter',
         'createdAt': FieldValue.serverTimestamp(),
-        'expirationDate': Timestamp.fromDate(DateTime.now().add(Duration(days: 3))),
+        'expirationDate': Timestamp.fromDate(DateTime.now().add(const Duration(days: 3))),
       });
 
       await groupRef.collection('fridge_items').add({
@@ -78,7 +78,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
         'quantity': '10',
         'unit': 'pcs',
         'createdAt': FieldValue.serverTimestamp(),
-        'expirationDate': Timestamp.fromDate(DateTime.now().add(Duration(days: 7))),
+        'expirationDate': Timestamp.fromDate(DateTime.now().add(const Duration(days: 7))),
       });
     }
   }
@@ -97,8 +97,8 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
 
     await flutterLocalNotificationsPlugin.show(
       itemName.hashCode,
-      'Item Expiring Soon',
-      '$itemName is expiring on ${DateFormat('yyyy-MM-dd HH:mm').format(expirationDate)}!',
+      AppLocalizations.of(context)!.itemExpiringSoon,
+      AppLocalizations.of(context)!.itemExpiringMessage(itemName, DateFormat('yyyy-MM-dd HH:mm').format(expirationDate)),
       notificationDetails,
     );
   }
@@ -132,7 +132,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Edit ${item['name']}'),
+              title: Text(AppLocalizations.of(context)!.editItem(item['name'])),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -140,11 +140,11 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                     TextFormField(
                       controller: quantityController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Quantity'),
+                      decoration: InputDecoration(labelText: AppLocalizations.of(context)!.quantityLabel),
                     ),
                     DropdownButtonFormField(
                       value: selectedUnit,
-                      decoration: const InputDecoration(labelText: 'Unit'),
+                      decoration: InputDecoration(labelText: AppLocalizations.of(context)!.unitLabel),
                       items: ['kg', 'g', 'pcs', 'liters']
                           .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                           .toList(),
@@ -167,8 +167,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                         if (pickedDate != null) {
                           final pickedTime = await showTimePicker(
                             context: context,
-                            initialTime: TimeOfDay.fromDateTime(
-                                expirationDate ?? DateTime.now()),
+                            initialTime: TimeOfDay.fromDateTime(expirationDate ?? DateTime.now()),
                           );
 
                           if (pickedTime != null) {
@@ -186,8 +185,8 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                       },
                       child: Text(
                         expirationDate != null
-                            ? 'Expiration: ${DateFormat('yyyy-MM-dd HH:mm').format(expirationDate!)}'
-                            : 'Set Expiration Date and Time',
+                            ? '${AppLocalizations.of(context)!.expiration}: ${DateFormat('yyyy-MM-dd HH:mm').format(expirationDate!)}'
+                            : AppLocalizations.of(context)!.setExpirationDateTime,
                       ),
                     ),
                   ],
@@ -196,7 +195,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -214,15 +213,14 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                           .doc(docId)
                           .update(updatedData);
                     } catch (e) {
-                      print("Error saving item: $e");
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error saving item: $e')),
+                        SnackBar(content: Text('${AppLocalizations.of(context)!.errorSavingItem}: $e')),
                       );
                     } finally {
                       Navigator.of(context).pop();
                     }
                   },
-                  child: const Text('Save'),
+                  child: Text(AppLocalizations.of(context)!.save),
                 ),
               ],
             );
@@ -235,12 +233,13 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+
     if (!hasAccess) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Access Denied')),
+        appBar: AppBar(title: Text(AppLocalizations.of(context)!.accessDenied)),
         backgroundColor: themeProvider.primaryColor,
-        body: const Center(
-          child: Text('You do not have access to this group.'),
+        body: Center(
+          child: Text(AppLocalizations.of(context)!.noAccessToGroup),
         ),
       );
     }
@@ -249,7 +248,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("What's in the Fridge?"),
+        title: Text(AppLocalizations.of(context)!.whatsInTheFridge),
         backgroundColor: themeProvider.primaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -269,8 +268,9 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No items found in the fridge.'));
+            return Center(child: Text(AppLocalizations.of(context)!.noItemsFoundInFridge));
           }
+
           final documents = snapshot.data!.docs;
 
           if (!widget.isGuest) {
@@ -283,7 +283,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
 
                 if (notificationTime.isBefore(now) &&
                     !scheduledNotifications.contains(data['name'].hashCode) &&
-                    !appStateProvider.isAppInForeground) { // Itt használjuk az AppStateProvider-t
+                    !appStateProvider.isAppInForeground) {
                   _showNotification(data['name'], expirationDate);
                   scheduledNotifications.add(data['name'].hashCode);
                 }
@@ -317,43 +317,19 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                 return Container(
                   color: backgroundColor,
                   child: ListTile(
-                    title: Text(data['name'] ?? 'No name'),
+                    title: Text(data['name'] ?? AppLocalizations.of(context)!.noName),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('${data['quantity']} ${data['unit'] ?? ''}'),
                         if (expirationDate != null)
                           Text(
-                            'Expires: ${DateFormat('yyyy-MM-dd HH:mm').format(expirationDate)}',
+                            '${AppLocalizations.of(context)!.expires}: ${DateFormat('yyyy-MM-dd HH:mm').format(expirationDate)}',
                             style: TextStyle(
                               color: expirationDate.difference(DateTime.now()).inHours <= 0
                                   ? Colors.red
                                   : null,
                             ),
-                          ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (!widget.isGuest)
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () {
-                              _editItem(context, data, doc.id);
-                            },
-                          ),
-                        if (!widget.isGuest)
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () async {
-                              await FirebaseFirestore.instance
-                                  .collection('groups')
-                                  .doc(widget.groupId)
-                                  .collection('fridge_items')
-                                  .doc(doc.id)
-                                  .delete();
-                            },
                           ),
                       ],
                     ),
@@ -364,115 +340,6 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
           );
         },
       ),
-      floatingActionButton: widget.isGuest
-          ? null
-          : FloatingActionButton(
-        onPressed: () {
-          _showAddItemDialog(context);
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  void _showAddItemDialog(BuildContext context) {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController quantityController = TextEditingController();
-    String selectedUnit = 'kg';
-    DateTime? expirationDate;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Add Item'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Item Name'),
-                    ),
-                    TextField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Quantity'),
-                    ),
-                    DropdownButtonFormField(
-                      value: selectedUnit,
-                      decoration: const InputDecoration(labelText: 'Unit'),
-                      items: ['kg', 'g', 'pcs', 'liters']
-                          .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                          .toList(),
-                      onChanged: (value) {
-                        setDialogState(() {
-                          selectedUnit = value!;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () async {
-                        final pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: expirationDate ?? DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-
-                        if (pickedDate != null) {
-                          final pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(
-                                expirationDate ?? DateTime.now()),
-                          );
-
-                          if (pickedTime != null) {
-                            setDialogState(() {
-                              expirationDate = DateTime(
-                                pickedDate.year,
-                                pickedDate.month,
-                                pickedDate.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                            });
-                          }
-                        }
-                      },
-                      child: Text(
-                        expirationDate != null
-                            ? 'Expiration: ${DateFormat('yyyy-MM-dd HH:mm').format(expirationDate!)}'
-                            : 'Set Expiration Date and Time',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final name = nameController.text;
-                    final quantity = quantityController.text;
-                    if (name.isNotEmpty && quantity.isNotEmpty) {
-                      _addItem(name, quantity, selectedUnit, expirationDate);
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: const Text('Add'),
-                ),
-              ],
-            );
-          },
-        );
-      },
     );
   }
 }

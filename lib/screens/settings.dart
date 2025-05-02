@@ -8,7 +8,8 @@ import 'package:provider/provider.dart';
 import '../services/theme_provider.dart';
 import 'languages_settings.dart';
 import 'notifications_settings.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // Hozzáadjuk a GoogleSignIn importot
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class SettingsScreen extends StatefulWidget {
   final bool isGuest;
@@ -53,19 +54,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _signOut() async {
     try {
-      // Ha nem vendég módban vagyunk, akkor kijelentkeztetjük a Google-fiókot is
       if (!widget.isGuest) {
         final GoogleSignIn googleSignIn = GoogleSignIn();
-        await googleSignIn.signOut(); // Google Sign-In munkamenet törlése
+        await googleSignIn.signOut();
       }
-      // Firebase Authentication kijelentkezés
       await FirebaseAuth.instance.signOut();
-      // Navigáció a WelcomeScreen-re
       Navigator.pushReplacementNamed(context, '/welcomescreen');
     } catch (e) {
-      // Hiba esetén értesítjük a felhasználót
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error logging out: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorLoggingOut(e.toString()))),
       );
     }
   }
@@ -78,8 +75,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, themeProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Settings'),
-            backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
+            title: Text(AppLocalizations.of(context)!.settings),
+            backgroundColor: themeProvider.primaryColor,
             foregroundColor: Colors.white,
             automaticallyImplyLeading: false,
           ),
@@ -103,21 +100,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (!widget.isGuest)
                   ListTile(
                     leading: const Icon(Icons.person),
-                    title: const Text('Profile Settings'),
+                    title: Text(AppLocalizations.of(context)!.profileSettings),
                     onTap: () async {
-                      // Navigálunk a ProfileSettingsScreen-re, és várjuk meg a visszatérést
                       await Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const ProfileSettingsScreen()),
                       );
-                      // Frissítjük az adatokat, hogy a profilkép megjelenjen, ha megváltozott
                       await _loadUserData();
                     },
                   ),
-                if (!widget.isGuest && (widget.isShared ?? true)) // Ha isShared null, akkor true
+                if (!widget.isGuest && (widget.isShared ?? true))
                   ListTile(
                     leading: const Icon(Icons.notifications),
-                    title: const Text('Notifications'),
+                    title: Text(AppLocalizations.of(context)!.notifications),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -127,7 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ListTile(
                   leading: const Icon(Icons.language),
-                  title: const Text('Language and Region'),
+                  title: Text(AppLocalizations.of(context)!.languageAndRegion),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -138,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (!widget.isGuest)
                   ListTile(
                     leading: const Icon(Icons.security),
-                    title: const Text('Privacy and Security'),
+                    title: Text(AppLocalizations.of(context)!.privacyAndSecurity),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -148,7 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ListTile(
                   leading: const Icon(Icons.palette),
-                  title: const Text("Theme and Appearance"),
+                  title: Text(AppLocalizations.of(context)!.themeAndAppearance),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -165,13 +160,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Navigator.pushNamed(context, '/register');
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: const Text('Register'),
+                    child: Text(AppLocalizations.of(context)!.register),
                   ),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _signOut,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: Text(widget.isGuest ? 'Return to Welcome Screen' : 'Log out'),
+                  child: Text(widget.isGuest
+                      ? AppLocalizations.of(context)!.returnToWelcomeScreen
+                      : AppLocalizations.of(context)!.logOut),
                 ),
               ],
             ),

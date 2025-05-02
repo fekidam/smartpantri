@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/intl.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class RegisterScreen extends StatefulWidget {
   final Function(bool)? setGuestMode;
@@ -50,13 +51,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } on FirebaseAuthException catch (e) {
         String errorMessage = '';
         if (e.code == 'email-already-in-use') {
-          errorMessage = 'This email address is already in use.';
+          errorMessage = AppLocalizations.of(context)!.emailAlreadyInUse;
         } else if (e.code == 'weak-password') {
-          errorMessage = 'The password is too weak.';
+          errorMessage = AppLocalizations.of(context)!.weakPassword;
         } else if (e.code == 'invalid-email') {
-          errorMessage = 'The email address is not valid.';
+          errorMessage = AppLocalizations.of(context)!.invalidEmail;
         } else {
-          errorMessage = 'An unknown error occurred.';
+          errorMessage = AppLocalizations.of(context)!.unknownError;
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -64,7 +65,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('An error occurred during registration.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.registrationError)),
         );
       }
     }
@@ -96,27 +97,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const Text(
-                  'Register',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                Text(
+                  AppLocalizations.of(context)!.register,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: firstNameController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'First Name',
-                    hintStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.firstName,
+                    hintStyle: const TextStyle(color: Colors.white70),
+                    enabledBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 1),
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 2),
                     ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'First Name is required.';
+                      return AppLocalizations.of(context)!.firstNameRequired;
                     }
                     return null;
                   },
@@ -125,19 +126,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: lastNameController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'Last Name',
-                    hintStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.lastName,
+                    hintStyle: const TextStyle(color: Colors.white70),
+                    enabledBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 1),
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 2),
                     ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Last Name is required.';
+                      return AppLocalizations.of(context)!.lastNameRequired;
                     }
                     return null;
                   },
@@ -146,21 +147,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: emailController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'Email',
-                    hintStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.email,
+                    hintStyle: const TextStyle(color: Colors.white70),
+                    enabledBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 1),
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 2),
                     ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Email is required.';
+                      return AppLocalizations.of(context)!.emailRequired;
                     } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value)) {
-                      return 'Please enter a valid email address.';
+                      return AppLocalizations.of(context)!.invalidEmailFormat;
                     }
                     return null;
                   },
@@ -170,21 +171,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: passwordController,
                   obscureText: true,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'Password',
-                    hintStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.password,
+                    hintStyle: const TextStyle(color: Colors.white70),
+                    enabledBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.green, width: 1),
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.green, width: 2),
                     ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Password is required.';
+                      return AppLocalizations.of(context)!.passwordRequired;
                     } else if (value.length < 6) {
-                      return 'Password must be at least 6 characters long.';
+                      return AppLocalizations.of(context)!.passwordTooShort;
                     }
                     return null;
                   },
@@ -194,21 +195,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: confirmPasswordController,
                   obscureText: true,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'Confirm Password',
-                    hintStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.confirmPassword,
+                    hintStyle: const TextStyle(color: Colors.white70),
+                    enabledBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.green, width: 1),
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.green, width: 2),
                     ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please confirm your password.';
+                      return AppLocalizations.of(context)!.confirmPasswordRequired;
                     } else if (value != passwordController.text) {
-                      return 'Passwords do not match.';
+                      return AppLocalizations.of(context)!.passwordsDoNotMatch;
                     }
                     return null;
                   },
@@ -217,20 +218,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 GestureDetector(
                   onTap: _selectDate,
                   child: InputDecorator(
-                    decoration: const InputDecoration(
-                      hintText: 'Select Birth Date',
-                      hintStyle: TextStyle(color: Colors.white70),
-                      enabledBorder: OutlineInputBorder(
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.selectBirthDate,
+                      hintStyle: const TextStyle(color: Colors.white70),
+                      enabledBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.orange, width: 1),
                       ),
-                      focusedBorder: OutlineInputBorder(
+                      focusedBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.orange, width: 2),
                       ),
                     ),
                     child: Text(
                       selectedDate != null
                           ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-                          : 'Select Birth Date',
+                          : AppLocalizations.of(context)!.selectBirthDate,
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -239,7 +240,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ElevatedButton(
                   onPressed: _register,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                  child: const Text('Register'),
+                  child: Text(AppLocalizations.of(context)!.register),
                 ),
               ],
             ),

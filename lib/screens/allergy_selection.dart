@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class AllergySelectionScreen extends StatefulWidget {
   final List<String> selectedAllergies;
@@ -15,18 +16,18 @@ class AllergySelectionScreen extends StatefulWidget {
 }
 
 class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
-  final List<String> allergies = [
-    'Dairy',
-    'Egg',
-    'Gluten',
-    'Peanut',
-    'Seafood',
-    'Sesame',
-    'Shellfish',
-    'Soy',
-    'Sulfite',
-    'Tree Nut',
-    'Wheat',
+  final List<String> allergyKeys = [
+    'allergyDairy',
+    'allergyEgg',
+    'allergyGluten',
+    'allergyPeanut',
+    'allergySeafood',
+    'allergySesame',
+    'allergyShellfish',
+    'allergySoy',
+    'allergySulfite',
+    'allergyTreeNut',
+    'allergyWheat',
   ];
 
   bool allSelected = false;
@@ -37,7 +38,7 @@ class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
         widget.selectedAllergies.clear();
       } else {
         widget.selectedAllergies.clear();
-        widget.selectedAllergies.addAll(allergies);
+        widget.selectedAllergies.addAll(allergyKeys.map((key) => AppLocalizations.of(context)!.getString(key)).toList());
       }
       allSelected = !allSelected;
       widget.onSelectionChanged(widget.selectedAllergies);
@@ -48,21 +49,22 @@ class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Allergies'),
+        title: Text(AppLocalizations.of(context)!.selectAllergies),
         actions: [
           TextButton(
             onPressed: _toggleSelectAll,
             child: Text(
-              allSelected ? 'Deselect All' : 'Select All',
+              allSelected ? AppLocalizations.of(context)!.deselectAll : AppLocalizations.of(context)!.selectAll,
               style: const TextStyle(color: Colors.white),
             ),
           ),
         ],
       ),
       body: ListView.builder(
-        itemCount: allergies.length,
+        itemCount: allergyKeys.length,
         itemBuilder: (context, index) {
-          final allergy = allergies[index];
+          final allergyKey = allergyKeys[index];
+          final allergy = AppLocalizations.of(context)!.getString(allergyKey);
           final isSelected = widget.selectedAllergies.contains(allergy);
           return CheckboxListTile(
             title: Text(allergy),
@@ -74,7 +76,7 @@ class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
                 } else if (value == false) {
                   widget.selectedAllergies.remove(allergy);
                 }
-                allSelected = widget.selectedAllergies.length == allergies.length;
+                allSelected = widget.selectedAllergies.length == allergyKeys.length;
                 widget.onSelectionChanged(widget.selectedAllergies);
               });
             },
@@ -88,5 +90,36 @@ class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
         },
       ),
     );
+  }
+}
+
+extension AppLocalizationsExtension on AppLocalizations {
+  String getString(String key) {
+    switch (key) {
+      case 'allergyDairy':
+        return allergyDairy;
+      case 'allergyEgg':
+        return allergyEgg;
+      case 'allergyGluten':
+        return allergyGluten;
+      case 'allergyPeanut':
+        return allergyPeanut;
+      case 'allergySeafood':
+        return allergySeafood;
+      case 'allergySesame':
+        return allergySesame;
+      case 'allergyShellfish':
+        return allergyShellfish;
+      case 'allergySoy':
+        return allergySoy;
+      case 'allergySulfite':
+        return allergySulfite;
+      case 'allergyTreeNut':
+        return allergyTreeNut;
+      case 'allergyWheat':
+        return allergyWheat;
+      default:
+        return '';
+    }
   }
 }

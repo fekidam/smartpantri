@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'group_home.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class ShareGroupScreen extends StatefulWidget {
   final String groupId;
@@ -20,7 +21,7 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
 
     if (email.isEmpty) {
       setState(() {
-        message = 'Please enter an email address.';
+        message = AppLocalizations.of(context)!.pleaseEnterEmailAddress;
       });
       return;
     }
@@ -33,7 +34,7 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
 
       if (userSnapshot.docs.isEmpty) {
         setState(() {
-          message = 'User not found.';
+          message = AppLocalizations.of(context)!.userNotFound;
         });
         return;
       }
@@ -46,14 +47,14 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
       });
 
       setState(() {
-        message = 'Group shared successfully! The user has been notified.';
+        message = AppLocalizations.of(context)!.groupSharedSuccessfully;
       });
 
       // Clear the email input after successful sharing
       emailController.clear();
     } catch (e) {
       setState(() {
-        message = 'Error sharing group: $e';
+        message = AppLocalizations.of(context)!.errorSharingGroup(e.toString());
       });
     }
   }
@@ -62,7 +63,7 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Share Group'),
+        title: Text(AppLocalizations.of(context)!.shareGroup),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -81,15 +82,15 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
           children: [
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Enter email to share with',
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.enterEmailToShareWith,
               ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _shareGroup,
-              child: const Text('Share Group'),
+              child: Text(AppLocalizations.of(context)!.shareGroup),
             ),
             if (message != null)
               Padding(
@@ -97,7 +98,9 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
                 child: Text(
                   message!,
                   style: TextStyle(
-                    color: message!.contains('successfully') ? Colors.green : Colors.red,
+                    color: message!.contains(AppLocalizations.of(context)!.groupSharedSuccessfully)
+                        ? Colors.green
+                        : Colors.red,
                   ),
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class YourGroupsScreen extends StatefulWidget {
   final bool isGuest;
@@ -126,7 +127,7 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
   Map<String, dynamic> normalizeItem(Map<String, dynamic> item) {
     return {
       'id': item['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      'name': item['name'] ?? 'Unknown',
+      'name': item['name'] ?? AppLocalizations.of(context)!.unknownItem,
       'quantity': item['quantity'] ?? 0,
       'price': item['price'] ?? 0.0,
       'unit': item['unit'] ?? 'pcs',
@@ -220,7 +221,7 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit: ${item['name'] ?? 'Unknown'}'),
+          title: Text(AppLocalizations.of(context)!.editItem(item['name'] ?? AppLocalizations.of(context)!.unknownItem)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -228,16 +229,16 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
                 TextFormField(
                   controller: quantityController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Quantity'),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.quantityLabel),
                 ),
                 TextFormField(
                   controller: priceController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Price'),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.priceLabel),
                 ),
                 DropdownButtonFormField<String>(
                   value: selectedUnit,
-                  decoration: const InputDecoration(labelText: 'Unit'),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.unitLabel),
                   items: ['kg', 'g', 'pcs', 'liters']
                       .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                       .toList(),
@@ -251,7 +252,7 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -334,7 +335,7 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
                 Navigator.of(context).pop();
                 setState(() {});
               },
-              child: const Text('Save'),
+              child: Text(AppLocalizations.of(context)!.save),
             ),
           ],
         );
@@ -409,7 +410,7 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Aggregated Shopping List'),
+            title: Text(AppLocalizations.of(context)!.aggregatedShoppingList),
             backgroundColor: groupColor, // Use group's color
             foregroundColor: Colors.white,
           ),
@@ -420,7 +421,7 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text("No items in the consolidated list."));
+                return Center(child: Text(AppLocalizations.of(context)!.noItemsInConsolidatedList));
               }
 
               final items = snapshot.data!;
@@ -434,7 +435,8 @@ class _YourGroupsScreenState extends State<YourGroupsScreen> {
                   return ListTile(
                     title: Text(item['name']),
                     subtitle: Text(
-                      'Quantity: ${item['quantity']} ${item['unit']}\nPrice: ${item['price'] ?? 'N/A'} Ft',
+                      '${AppLocalizations.of(context)!.quantityLabel}: ${item['quantity']} ${item['unit']}\n'
+                          '${AppLocalizations.of(context)!.priceLabel}: ${item['price'] != null ? item['price'] : AppLocalizations.of(context)!.notAvailable} ${AppLocalizations.of(context)!.currencySymbol}',
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,

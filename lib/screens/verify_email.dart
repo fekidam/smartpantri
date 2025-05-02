@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:smartpantri/generated/l10n.dart';
 
 class VerifyEmailScreen extends StatelessWidget {
   const VerifyEmailScreen({super.key});
@@ -12,7 +13,7 @@ class VerifyEmailScreen extends StatelessWidget {
     if (user?.emailVerified ?? false) {
       Navigator.pushReplacementNamed(context, '/login');
     } else {
-      const snackBar = SnackBar(content: Text('Please verify your email first.'));
+      final snackBar = SnackBar(content: Text(AppLocalizations.of(context)!.pleaseVerifyYourEmailFirst));
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
@@ -24,23 +25,23 @@ class VerifyEmailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify Email'),
+        title: Text(AppLocalizations.of(context)!.verifyEmail),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'A verification email has been sent to your email address.',
+            Text(
+              AppLocalizations.of(context)!.verificationEmailSent,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18),
+              style: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
                 await refreshUserStatus(context);
               },
-              child: const Text('I have verified my email'),
+              child: Text(AppLocalizations.of(context)!.iHaveVerifiedMyEmail),
             ),
           ],
         ),

@@ -39,7 +39,7 @@ dependencies:
   flutter_colorpicker: ^1.0.3
   image_cropper: ^9.0.0
   device_info_plus: ^11.3.3
-  cloud_functions: 5.4.0
+  cloud_functions: ^5.5.0
   firebase_app_check: 0.3.2+5
   timezone: ^0.10.0
   flutter_timezone: ^4.1.0

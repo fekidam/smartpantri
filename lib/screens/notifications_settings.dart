@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:provider/provider.dart'; // Provider import hozzáadása
-import '../services/theme_provider.dart'; // ThemeProvider import hozzáadása
+import 'package:provider/provider.dart';
+import '../services/theme_provider.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -69,20 +70,19 @@ class _NotificationsSettingsScreenState extends State<NotificationSettingsScreen
 
   @override
   Widget build(BuildContext context) {
-    // ThemeProvider lekérése
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
-        backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+        title: Text(AppLocalizations.of(context)!.notifications),
+        backgroundColor: themeProvider.primaryColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
             SwitchListTile(
-              title: const Text('Enable Notifications'),
+              title: Text(AppLocalizations.of(context)!.enableNotifications),
               value: notificationsEnabled,
               onChanged: (value) {
                 setState(() {
@@ -97,7 +97,7 @@ class _NotificationsSettingsScreenState extends State<NotificationSettingsScreen
               },
             ),
             SwitchListTile(
-              title: const Text('Message Notifications'),
+              title: Text(AppLocalizations.of(context)!.messageNotifications),
               value: messageNotifications,
               onChanged: notificationsEnabled
                   ? (value) {
@@ -110,7 +110,7 @@ class _NotificationsSettingsScreenState extends State<NotificationSettingsScreen
                   : null,
             ),
             SwitchListTile(
-              title: const Text('Notifications on Updates'),
+              title: Text(AppLocalizations.of(context)!.updateNotifications),
               value: updateNotifications,
               onChanged: notificationsEnabled
                   ? (value) {

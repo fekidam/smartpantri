@@ -9,6 +9,7 @@ import '../models/data.dart';
 import 'groups.dart';
 import 'your_groups.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class HomeScreen extends StatefulWidget {
   final bool isGuest;
@@ -47,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }, onError: (error) {
       print('Error fetching groups: $error');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching groups: $error')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorFetchingGroups(error.toString()))),
       );
     });
 
@@ -66,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
         {
           'group': Group(
             id: 'demo_group_id',
-            name: 'Demo Group',
+            name: AppLocalizations.of(context)!.demoGroup,
             color: '00FF00',
             sharedWith: ['guest'],
           ),
@@ -105,17 +106,17 @@ class _HomeScreenState extends State<HomeScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Edit Group'),
+              title: Text(AppLocalizations.of(context)!.editGroup),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Group Name'),
+                      decoration: InputDecoration(labelText: AppLocalizations.of(context)!.groupName),
                     ),
                     const SizedBox(height: 10),
-                    const Text('Group Tag Color'),
+                    Text(AppLocalizations.of(context)!.groupTagColor),
                     const SizedBox(height: 10),
                     BlockPicker(
                       pickerColor: selectedColor,
@@ -141,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -153,11 +154,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       });
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Group updated successfully')),
+                        SnackBar(content: Text(AppLocalizations.of(context)!.groupUpdatedSuccessfully)),
                       );
                     }
                   },
-                  child: const Text('Save'),
+                  child: Text(AppLocalizations.of(context)!.save),
                 ),
               ],
             );
@@ -170,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _deleteGroup(Group group) async {
     await FirebaseFirestore.instance.collection('groups').doc(group.id).delete();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Group deleted')),
+      SnackBar(content: Text(AppLocalizations.of(context)!.groupDeleted)),
     );
   }
 
@@ -178,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Your Groups"),
+        title: Text(AppLocalizations.of(context)!.yourGroups),
         backgroundColor: Colors.grey[800], // Fixed dark grey color
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
@@ -193,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text("No groups found"));
+                  return Center(child: Text(AppLocalizations.of(context)!.noGroupsFound));
                 }
                 List<Map<String, dynamic>> groupData = snapshot.data!;
                 return ListView(
@@ -205,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       leading: CircleAvatar(
                         backgroundColor: Color(int.parse('0xFF${group.color}')),
                       ),
-                      subtitle: isShared ? const Text('Shared') : null,
+                      subtitle: isShared ? Text(AppLocalizations.of(context)!.shared) : null,
                       trailing: widget.isGuest
                           ? null
                           : Row(
@@ -260,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
               icon: const Icon(Icons.list),
-              label: const Text("View Your Groups"),
+              label: Text(AppLocalizations.of(context)!.viewYourGroups),
             ),
           ),
         ],

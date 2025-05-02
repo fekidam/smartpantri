@@ -111,14 +111,7 @@ Future<void> main() async {
           ),
         ),
         ChangeNotifierProvider<LanguageProvider>(
-          create: (_) {
-            final languageProvider = LanguageProvider();
-            SharedPreferences.getInstance().then((prefs) {
-              final savedLocale = prefs.getString('locale') ?? 'en';
-              languageProvider.setLocale(Locale(savedLocale));
-            });
-            return languageProvider;
-          },
+          create: (_) => LanguageProvider(), // A LanguageProvider maga tölti be a mentett nyelvet
         ),
         ChangeNotifierProvider(create: (_) => AppStateProvider()),
       ],

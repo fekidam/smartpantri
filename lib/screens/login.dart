@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class LoginScreen extends StatefulWidget {
   final Function(bool)? setGuestMode;
@@ -23,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (email.isEmpty || password.isEmpty) {
         setState(() {
-          errorMessage = 'Please fill in both fields!';
+          errorMessage = AppLocalizations.of(context)!.pleaseFillInBothFields;
         });
         return;
       }
@@ -41,28 +42,28 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/home');
       } else if (user != null && !user.emailVerified) {
         setState(() {
-          errorMessage = 'Please verify your email address to log in.';
+          errorMessage = AppLocalizations.of(context)!.pleaseVerifyYourEmail;
         });
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
         switch (e.code) {
           case 'user-not-found':
-            errorMessage = 'User not found.';
+            errorMessage = AppLocalizations.of(context)!.userNotFound;
             break;
           case 'wrong-password':
-            errorMessage = 'Invalid password.';
+            errorMessage = AppLocalizations.of(context)!.wrongPassword;
             break;
           case 'invalid-email':
-            errorMessage = 'Invalid email address.';
+            errorMessage = AppLocalizations.of(context)!.invalidEmail;
             break;
           default:
-            errorMessage = 'Login error: ${e.message}';
+            errorMessage = AppLocalizations.of(context)!.loginError(e.message ?? 'Unknown error');
         }
       });
     } catch (e) {
       setState(() {
-        errorMessage = 'Login error: $e';
+        errorMessage = AppLocalizations.of(context)!.loginError(e.toString());
       });
     }
   }
@@ -79,21 +80,21 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 const SizedBox(height: 40),
-                const Text(
-                  'Log In',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                Text(
+                  AppLocalizations.of(context)!.logIn,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
                   controller: emailController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your email',
-                    hintStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.enterYourEmail,
+                    hintStyle: const TextStyle(color: Colors.white70),
+                    enabledBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 1),
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 2),
                     ),
                   ),
@@ -105,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscurePassword,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'Password',
+                    hintText: AppLocalizations.of(context)!.password,
                     hintStyle: const TextStyle(color: Colors.white70),
                     enabledBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.green, width: 1),
@@ -131,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ElevatedButton(
                   onPressed: _login,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                  child: const Text('Log in'),
+                  child: Text(AppLocalizations.of(context)!.logIn),
                 ),
                 const SizedBox(height: 10),
                 if (errorMessage != null)
@@ -146,9 +147,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () {
                     Navigator.pushNamed(context, '/register');
                   },
-                  child: const Text(
-                    'Don\'t have an account? Register',
-                    style: TextStyle(color: Colors.white70),
+                  child: Text(
+                    AppLocalizations.of(context)!.dontHaveAnAccountRegister,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ),
                 const SizedBox(height: 40),

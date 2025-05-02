@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/theme_provider.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class NotificationsScreen extends StatefulWidget {
   final String groupId;
@@ -21,9 +22,25 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<void> _sendNotification(String message) async {
+  Future<void> _sendNotification(String messageKey) async {
     User? user = _auth.currentUser;
     if (user != null && widget.groupId.isNotEmpty) {
+      // A messageKey alapján válasszuk ki a lokalizált üzenetet
+      String message;
+      switch (messageKey) {
+        case 'iAmGoingShoppingToday':
+          message = AppLocalizations.of(context)!.iAmGoingShoppingToday;
+          break;
+        case 'whatsMissingFromShoppingList':
+          message = AppLocalizations.of(context)!.whatsMissingFromShoppingList;
+          break;
+        case 'whosGoingShoppingToday':
+          message = AppLocalizations.of(context)!.whosGoingShoppingToday;
+          break;
+        default:
+          message = AppLocalizations.of(context)!.noMessage;
+      }
+
       // Mentsük az értesítést a Firestore-ba
       await FirebaseFirestore.instance.collection('notifications').add({
         'message': message,
@@ -73,7 +90,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         body: jsonEncode({
           'to': token,
           'notification': {
-            'title': 'New Notification',
+            'title': AppLocalizations.of(context)!.notifications,
             'body': message,
           },
           'data': {
@@ -102,25 +119,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.shopping_cart),
-              title: const Text('Going Shopping'),
+              title: Text(AppLocalizations.of(context)!.goingShopping),
               onTap: () {
-                _sendNotification('I am going shopping today.');
+                _sendNotification('iAmGoingShoppingToday');
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.list),
-              title: const Text('What\'s Missing?'),
+              title: Text(AppLocalizations.of(context)!.whatsMissing),
               onTap: () {
-                _sendNotification('What\'s missing from the shopping list?');
+                _sendNotification('whatsMissingFromShoppingList');
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.person),
-              title: const Text('Who\'s Going Shopping?'),
+              title: Text(AppLocalizations.of(context)!.whosGoingShopping),
               onTap: () {
-                _sendNotification('Who\'s going shopping today?');
+                _sendNotification('whosGoingShoppingToday');
                 Navigator.pop(context);
               },
             ),
@@ -136,15 +153,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       builder: (context, themeProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Notifications'),
-            backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
+            title: Text(AppLocalizations.of(context)!.notifications),
+            backgroundColor: themeProvider.primaryColor,
             foregroundColor: Colors.white,
             automaticallyImplyLeading: false,
           ),
           body: widget.isGuest
-              ? const Center(
+              ? Center(
             child: Text(
-              'Notifications are not available in Guest Mode. Please log in to access this feature.',
+              AppLocalizations.of(context)!.notificationsNotAvailableInGuestMode,
               textAlign: TextAlign.center,
             ),
           )
@@ -159,10 +176,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (snapshot.hasError) {
-                return Text('Error: ${snapshot.error}');
+                return Text(AppLocalizations.of(context)!.errorLoadingNotifications(snapshot.error.toString()));
               }
               if (snapshot.data?.docs.isEmpty ?? true) {
-                return const Center(child: Text('No notifications found.'));
+                return Center(child: Text(AppLocalizations.of(context)!.noNotificationsFound));
               }
               return ListView(
                 children: snapshot.data!.docs.map((DocumentSnapshot document) {
@@ -174,18 +191,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                   return ListTile(
                     leading: const Icon(Icons.notifications, color: Colors.blue),
-                    title: Text(data['message'] ?? 'No message'),
+                    title: Text(data['message'] ?? AppLocalizations.of(context)!.noMessage),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Sender: ${data['sender'] ?? 'Unknown'}',
+                          AppLocalizations.of(context)!.sender(data['sender'] ?? AppLocalizations.of(context)!.unknownItem),
                           style: const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         Text(
                           timestamp != null
                               ? DateFormat('yyyy/MM/dd HH:mm').format(timestamp)
-                              : 'No timestamp available',
+                              : AppLocalizations.of(context)!.noTimestampAvailable,
                           style: const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],

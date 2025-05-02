@@ -5,8 +5,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 import '../services/theme_provider.dart';
+import '../services/language_provider.dart';
+
+// Product osztály definiálása
+class Product {
+  final String id;
+  final String name;
+  final String category;
+  final String defaultUnit;
+
+  Product({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.defaultUnit,
+  });
+}
 
 class ShoppingListScreen extends StatefulWidget {
   final bool isGuest;
@@ -22,11 +38,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final TextEditingController searchController = TextEditingController();
   final List<String> units = ['kg', 'g', 'pcs', 'liters'];
   String selectedUnit = 'kg';
+  List<Product> products = []; // A Product osztály használata
   List<Map<String, dynamic>> availableProducts = [];
   List<Map<String, dynamic>> cartItems = [];
   List<Map<String, dynamic>> selectedItems = [];
   bool showSearchBar = false;
   final int guestCartLimit = 3;
+  bool _isInitialized = false; // Flag az inicializálás nyomon követésére
 
   static List<Map<String, dynamic>> guestCartItems = [];
 
@@ -37,7 +55,34 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       _loadGuestCart();
     }
     loadCartItems();
+    if (!widget.isGuest) {
+      loadSelectedItems();
+    }
+    // Nyelvváltás figyelése
+    Provider.of<LanguageProvider>(context, listen: false).addListener(_onLanguageChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Csak akkor inicializálunk, ha még nem történt meg, vagy ha a lokalizáció változik
+    if (!_isInitialized) {
+      fetchProductsFromFirestore();
+      _isInitialized = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    // Listener eltávolítása
+    Provider.of<LanguageProvider>(context, listen: false).removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  // Nyelvváltás kezelése
+  void _onLanguageChanged() {
     fetchProductsFromFirestore();
+    loadCartItems();
     if (!widget.isGuest) {
       loadSelectedItems();
     }
@@ -61,20 +106,216 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 
   Future<void> fetchProductsFromFirestore() async {
-    final QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('products').get();
-    final List<Map<String, dynamic>> products = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    final locale = Localizations.localeOf(context);
+    final isHungarian = locale.languageCode == 'hu';
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('products')
+        .where(isHungarian ? 'name.hu' : 'name.en', isNotEqualTo: '')
+        .get();
 
     setState(() {
-      availableProducts = products;
+      products = snapshot.docs.map((doc) {
+        final data = doc.data();
+
+        // Ellenőrizzük, hogy a 'name' mező Map-e, ha nem, alapértelmezett értéket adunk
+        final nameMap = data['name'] is Map<String, dynamic>
+            ? data['name'] as Map<String, dynamic>
+            : {'en': data['name']?.toString() ?? 'Unknown', 'hu': data['name']?.toString() ?? 'Ismeretlen'};
+
+        // Ellenőrizzük, hogy a 'category' mező Map-e, ha nem, alapértelmezett értéket adunk
+        final categoryMap = data['category'] is Map<String, dynamic>
+            ? data['category'] as Map<String, dynamic>
+            : {'en': data['category']?.toString() ?? 'Unknown', 'hu': data['category']?.toString() ?? 'Ismeretlen'};
+
+        // Ellenőrizzük, hogy a 'defaultUnit' mező Map-e, ha nem, alapértelmezett értéket adunk
+        final defaultUnitMap = data['defaultUnit'] is Map<String, dynamic>
+            ? data['defaultUnit'] as Map<String, dynamic>
+            : {'en': data['defaultUnit']?.toString() ?? 'kg', 'hu': data['defaultUnit']?.toString() ?? 'kg'};
+
+        return Product(
+          id: doc.id,
+          name: isHungarian ? nameMap['hu'] ?? 'Ismeretlen' : nameMap['en'] ?? 'Unknown',
+          category: isHungarian ? categoryMap['hu'] ?? 'Ismeretlen' : categoryMap['en'] ?? 'Unknown',
+          defaultUnit: defaultUnitMap['en'] ?? 'kg',
+        );
+      }).toList();
+
+      // availableProducts feltöltése az eredeti Firestore struktúrával
+      availableProducts = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': data['name'] is Map<String, dynamic>
+              ? data['name']
+              : {'en': data['name']?.toString() ?? 'Unknown', 'hu': data['name']?.toString() ?? 'Ismeretlen'},
+          'category': data['category'] is Map<String, dynamic>
+              ? data['category']
+              : {'en': data['category']?.toString() ?? 'Unknown', 'hu': data['category']?.toString() ?? 'Ismeretlen'},
+          'defaultUnit': data['defaultUnit'] is Map<String, dynamic>
+              ? data['defaultUnit']
+              : {'en': data['defaultUnit']?.toString() ?? 'kg', 'hu': data['defaultUnit']?.toString() ?? 'kg'},
+        };
+      }).toList();
     });
   }
 
+  Future<void> addNewProduct() async {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context);
+    final isHungarian = locale.languageCode == 'hu';
+
+    final TextEditingController nameEnController = TextEditingController();
+    final TextEditingController nameHuController = TextEditingController();
+    final TextEditingController categoryEnController = TextEditingController();
+    final TextEditingController categoryHuController = TextEditingController();
+    String selectedDefaultUnit = 'kg';
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n.addNewProduct),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameHuController,
+                  decoration: InputDecoration(labelText: l10n.nameLabelHu),
+                ),
+                TextFormField(
+                  controller: nameEnController,
+                  decoration: InputDecoration(labelText: l10n.nameLabelEn),
+                ),
+                TextFormField(
+                  controller: categoryHuController,
+                  decoration: InputDecoration(labelText: l10n.categoryLabelHu),
+                ),
+                TextFormField(
+                  controller: categoryEnController,
+                  decoration: InputDecoration(labelText: l10n.categoryLabelEn),
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedDefaultUnit,
+                  decoration: InputDecoration(labelText: l10n.unitLabel),
+                  items: units.map((unit) {
+                    final translatedUnit = unit == 'kg'
+                        ? l10n.unitKg
+                        : unit == 'g'
+                        ? l10n.unitG
+                        : unit == 'pcs'
+                        ? l10n.unitPcs
+                        : unit == 'liters'
+                        ? l10n.unitLiters
+                        : unit;
+                    return DropdownMenuItem(value: unit, child: Text(translatedUnit));
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedDefaultUnit = value!;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Ellenőrizzük a mezőket a nyelvi beállítás alapján
+                bool isValid = true;
+                String errorMessage = '';
+
+                // Legalább az egyik nyelvi mező kitöltött kell legyen (Firestore szabály miatt)
+                if (nameHuController.text.isEmpty && nameEnController.text.isEmpty) {
+                  isValid = false;
+                  errorMessage = l10n.fillAtLeastOneName;
+                } else if (categoryHuController.text.isEmpty && categoryEnController.text.isEmpty) {
+                  isValid = false;
+                  errorMessage = l10n.fillAtLeastOneCategory;
+                } else {
+                  // Ha magyar nyelv van, a magyar mezők kötelezőek
+                  if (isHungarian) {
+                    if (nameHuController.text.isEmpty) {
+                      isValid = false;
+                      errorMessage = l10n.fillHungarianName;
+                    }
+                    if (categoryHuController.text.isEmpty) {
+                      isValid = false;
+                      errorMessage = errorMessage.isEmpty ? l10n.fillHungarianCategory : '$errorMessage\n${l10n.fillHungarianCategory}';
+                    }
+                  }
+                  // Ha angol nyelv van, az angol mezők kötelezőek
+                  else {
+                    if (nameEnController.text.isEmpty) {
+                      isValid = false;
+                      errorMessage = l10n.fillEnglishName;
+                    }
+                    if (categoryEnController.text.isEmpty) {
+                      isValid = false;
+                      errorMessage = errorMessage.isEmpty ? l10n.fillEnglishCategory : '$errorMessage\n${l10n.fillEnglishCategory}';
+                    }
+                  }
+                }
+
+                if (!isValid) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(errorMessage)),
+                  );
+                  return;
+                }
+
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.userNotLoggedIn)),
+                  );
+                  return;
+                }
+
+                final newProduct = {
+                  'name': {
+                    'en': nameEnController.text.isNotEmpty ? nameEnController.text : '', // Üres string, ha nincs kitöltve
+                    'hu': nameHuController.text.isNotEmpty ? nameHuController.text : '',
+                  },
+                  'category': {
+                    'en': categoryEnController.text.isNotEmpty ? categoryEnController.text : '',
+                    'hu': categoryHuController.text.isNotEmpty ? categoryHuController.text : '',
+                  },
+                  'defaultUnit': {
+                    'en': selectedDefaultUnit,
+                    'hu': selectedDefaultUnit,
+                  },
+                  'createdBy': user.uid,
+                };
+
+                await FirebaseFirestore.instance.collection('products').add(newProduct);
+                Navigator.of(context).pop();
+                await fetchProductsFromFirestore();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.productAdded)),
+                );
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void addItemToCart(Map<String, dynamic> item) async {
+    final l10n = AppLocalizations.of(context)!;
     if (widget.isGuest) {
       if (cartItems.length >= guestCartLimit) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Guest users can only add up to $guestCartLimit items. Please log in to add more.'),
+            content: Text(l10n.guestCartLimitMessage(guestCartLimit)),
           ),
         );
         return;
@@ -131,12 +372,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   void toggleItemSelection(Map<String, dynamic> item) async {
     final user = FirebaseAuth.instance.currentUser;
+    final l10n = AppLocalizations.of(context)!;
     if (user == null) return;
 
     if (item['isChecked'] == true && item['selectedBy'] != user.email) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('This item is already selected by ${item['selectedBy']}.'),
+          content: Text(l10n.itemAlreadySelectedBy(item['selectedBy'])),
         ),
       );
       return;
@@ -210,12 +452,17 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Future<void> removeItem(Map<String, dynamic> item) async {
     final user = FirebaseAuth.instance.currentUser;
     final String? addedBy = item['addedBy'] ?? 'unknown';
+    final l10n = AppLocalizations.of(context)!;
+    final currentLocale = Localizations.localeOf(context).languageCode;
+    final itemName = item['name'] is Map<String, dynamic>
+        ? item['name'][currentLocale] ?? item['name']['en']
+        : item['name'];
 
     if (widget.isGuest) {
       if (addedBy != 'guest') {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('You can only delete items you added.'),
+            content: Text(l10n.onlyDeleteOwnItems),
           ),
         );
         return;
@@ -224,7 +471,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (user == null || addedBy != user.email) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('You can only delete items you added.'),
+            content: Text(l10n.onlyDeleteOwnItems),
           ),
         );
         return;
@@ -270,17 +517,22 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         });
       }
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.itemRemoved(itemName))),
+    );
   }
 
   Future<void> editCartItem(BuildContext context, Map<String, dynamic> item) async {
     final user = FirebaseAuth.instance.currentUser;
     final String? addedBy = item['addedBy'] ?? 'unknown';
+    final l10n = AppLocalizations.of(context)!;
 
     if (widget.isGuest) {
       if (addedBy != 'guest') {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('You can only edit items you added.'),
+            content: Text(l10n.onlyEditOwnItems),
           ),
         );
         return;
@@ -289,7 +541,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (user == null || addedBy != user.email) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('You can only edit items you added.'),
+            content: Text(l10n.onlyEditOwnItems),
           ),
         );
         return;
@@ -302,21 +554,36 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     await showDialog(
       context: context,
       builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        final currentLocale = Localizations.localeOf(context).languageCode;
+        final itemName = item['name'] is Map<String, dynamic>
+            ? item['name'][currentLocale] ?? item['name']['en']
+            : item['name'];
+
         return AlertDialog(
-          title: Text('Edit ${item['name']}'),
+          title: Text(l10n.editItem(itemName)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 controller: quantityController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Quantity'),
+                decoration: InputDecoration(labelText: l10n.quantityLabel),
               ),
               DropdownButtonFormField<String>(
                 value: selectedUnit,
-                decoration: const InputDecoration(labelText: 'Unit'),
+                decoration: InputDecoration(labelText: l10n.unitLabel),
                 items: units.map((unit) {
-                  return DropdownMenuItem(value: unit, child: Text(unit));
+                  final translatedUnit = unit == 'kg'
+                      ? l10n.unitKg
+                      : unit == 'g'
+                      ? l10n.unitG
+                      : unit == 'pcs'
+                      ? l10n.unitPcs
+                      : unit == 'liters'
+                      ? l10n.unitLiters
+                      : unit;
+                  return DropdownMenuItem(value: unit, child: Text(translatedUnit));
                 }).toList(),
                 onChanged: (value) {
                   selectedUnit = value!;
@@ -329,7 +596,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -381,7 +648,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     final userDoc = await userDocRef.get();
                     if (userDoc.exists) {
                       final userData = userDoc.data();
-                      if (userData != null && userData.containsKey('items')) {
+                      if (userData != null && userData.containsKey('items')) { // Fixed: Changed 'data' to 'userData'
                         final userItems = List<Map<String, dynamic>>.from(userData['items']);
                         final userItemIndex =
                         userItems.indexWhere((existingItem) => existingItem['id'] == item['id']);
@@ -396,7 +663,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
                 Navigator.of(context).pop();
               },
-              child: const Text('Save'),
+              child: Text(l10n.save),
             ),
           ],
         );
@@ -429,6 +696,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   Future<void> loadSelectedItems() async {
     final user = FirebaseAuth.instance.currentUser;
+
     if (user != null) {
       final docRef = await FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid).get();
       final data = docRef.data();
@@ -443,14 +711,21 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final l10n = AppLocalizations.of(context)!;
+    final currentLocale = Localizations.localeOf(context).languageCode;
+
     final filteredProducts = availableProducts.where((product) {
-      return searchController.text.isEmpty ||
-          product['name'].toLowerCase().startsWith(searchController.text.toLowerCase());
+      final productName = product['name'] is Map<String, dynamic>
+          ? product['name'][currentLocale] ?? ''
+          : product['name'];
+      return productName.isNotEmpty &&
+          (searchController.text.isEmpty ||
+              productName.toLowerCase().startsWith(searchController.text.toLowerCase()));
     }).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Shopping List'),
+        title: Text(l10n.shoppingList),
         backgroundColor: themeProvider.primaryColor,
         actions: [
           if (!widget.isGuest)
@@ -473,7 +748,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               child: TextField(
                 controller: searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search for products',
+                  hintText: l10n.searchForProducts,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
@@ -484,7 +759,16 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               ),
             ),
           Expanded(
-            child: GridView.builder(
+            child: filteredProducts.isEmpty
+                ? Center(
+              child: Text(
+                currentLocale == 'hu'
+                    ? "Nincsenek magyar nyelven elérhető termékek."
+                    : "No products available in English.",
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            )
+                : GridView.builder(
               padding: const EdgeInsets.all(8.0),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -495,6 +779,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               itemCount: filteredProducts.length,
               itemBuilder: (context, index) {
                 var product = filteredProducts[index];
+                final productName = product['name'] is Map<String, dynamic>
+                    ? product['name'][currentLocale] ?? ''
+                    : product['name'];
                 return GestureDetector(
                   onTap: () => addItemToCart(product),
                   child: Card(
@@ -504,7 +791,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        product['name'],
+                        productName,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -519,28 +806,49 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             ),
           ),
           const Divider(),
-          const Text(
-            'Shopping Cart',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.shoppingCart,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           Expanded(
-            child: ListView.builder(
+            child: cartItems.isEmpty
+                ? Center(
+              child: Text(
+                l10n.noItemsInConsolidatedList,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            )
+                : ListView.builder(
               itemCount: cartItems.length,
               itemBuilder: (context, index) {
                 var cartItem = cartItems[index];
+                final cartItemName = cartItem['name'] is Map<String, dynamic>
+                    ? cartItem['name'][currentLocale] ?? cartItem['name']['en'] ?? l10n.unknownItem
+                    : cartItem['name'];
+                final cartItemUnit = cartItem['unit'];
+                final translatedUnit = cartItemUnit == 'kg'
+                    ? l10n.unitKg
+                    : cartItemUnit == 'g'
+                    ? l10n.unitG
+                    : cartItemUnit == 'pcs'
+                    ? l10n.unitPcs
+                    : cartItemUnit == 'liters'
+                    ? l10n.unitLiters
+                    : cartItemUnit;
                 bool isSelected = cartItem['isChecked'] ?? false;
                 String? selectedBy = cartItem['selectedBy'];
                 final user = FirebaseAuth.instance.currentUser;
                 final String? addedBy = cartItem['addedBy'];
 
                 bool isEditable = !isSelected || (selectedBy == user?.email);
-                bool canEditItem = widget.isGuest ? (addedBy == 'guest') : (user != null && addedBy == user?.email);
+                bool canEditItem =
+                widget.isGuest ? (addedBy == 'guest') : (user != null && addedBy == user?.email);
 
                 return widget.isGuest
                     ? ListTile(
-                  title: Text(cartItem['name']),
+                  title: Text(cartItemName),
                   subtitle: Text(
-                    'Quantity: ${cartItem['quantity']} ${cartItem['unit']}' '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
+                    '${l10n.quantityLabel}: ${cartItem['quantity']} $translatedUnit${isSelected && selectedBy != null ? '\n${l10n.selectedBy(selectedBy)}' : ''}',
                   ),
                   trailing: canEditItem
                       ? IconButton(
@@ -557,15 +865,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       cartItems.removeAt(index);
                     });
                     removeItem(cartItem);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${cartItem['name']} removed')),
-                    );
                   },
                   background: Container(color: Colors.red),
                   child: ListTile(
-                    title: Text(cartItem['name']),
+                    title: Text(cartItemName),
                     subtitle: Text(
-                      'Quantity: ${cartItem['quantity']} ${cartItem['unit']}' '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
+                      '${l10n.quantityLabel}: ${cartItem['quantity']} $translatedUnit${isSelected && selectedBy != null ? '\n${l10n.selectedBy(selectedBy)}' : ''}',
                     ),
                     onTap: canEditItem ? () => editCartItem(context, cartItem) : null,
                     trailing: Checkbox(
@@ -579,9 +884,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   ),
                 )
                     : ListTile(
-                  title: Text(cartItem['name']),
+                  title: Text(cartItemName),
                   subtitle: Text(
-                    'Quantity: ${cartItem['quantity']} ${cartItem['unit']}' '${isSelected && selectedBy != null ? '\nSelected by: $selectedBy' : ''}',
+                    '${l10n.quantityLabel}: ${cartItem['quantity']} $translatedUnit${isSelected && selectedBy != null ? '\n${l10n.selectedBy(selectedBy)}' : ''}',
                   ),
                   onTap: canEditItem ? () => editCartItem(context, cartItem) : null,
                   trailing: Checkbox(
@@ -598,6 +903,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
         ],
       ),
+      floatingActionButton: !widget.isGuest
+          ? FloatingActionButton(
+        onPressed: addNewProduct,
+        child: const Icon(Icons.add),
+        tooltip: l10n.addNewProduct,
+      )
+          : null,
     );
   }
 }

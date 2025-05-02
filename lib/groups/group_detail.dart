@@ -9,6 +9,7 @@ import 'package:smartpantri/screens/ai_chat_screen.dart';
 import 'package:smartpantri/services/theme_provider.dart';
 import '../screens/homescreen.dart';
 import 'group_home.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class GroupDetailScreen extends StatefulWidget {
   final Group group;
@@ -32,7 +33,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   int _selectedIndex = 0;
 
   late final List<Widget> _pages;
-  late final List<BottomNavigationBarItem> _navItems;
+  late List<BottomNavigationBarItem> _navItems;
+  late Color groupColor;
 
   // Helper method to convert hex string to Color
   Color _hexToColor(String hexColor) {
@@ -53,7 +55,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   void initState() {
     super.initState();
     // Convert the hex string to a Color object
-    final groupColor = _hexToColor(widget.group.color);
+    groupColor = _hexToColor(widget.group.color);
 
     _pages = [
       GroupHomeScreen(groupId: widget.group.id, isGuest: widget.isGuest),
@@ -71,36 +73,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       SettingsScreen(isGuest: widget.isGuest, isShared: widget.isShared),
     ];
 
-    _navItems = [
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.home, color: Colors.green),
-        label: 'Home',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.restaurant_menu, color: Colors.green),
-        label: 'Recipes',
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(
-          Icons.chat,
-          color: widget.isGuest ? Colors.grey : Colors.green,
-        ),
-        label: 'Chat',
-      ),
-      if (widget.isShared)
-        BottomNavigationBarItem(
-          icon: Icon(
-            Icons.notifications,
-            color: widget.isGuest ? Colors.grey : Colors.green,
-          ),
-          label: 'Notifications',
-        ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.person, color: Colors.green),
-        label: 'Profile',
-      ),
-    ];
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.arguments != null && widget.arguments!.containsKey('selectedIndex')) {
         final index = widget.arguments!['selectedIndex'] as int;
@@ -115,10 +87,44 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _navItems = [
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.home, color: Colors.green),
+        label: AppLocalizations.of(context)!.home,
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.restaurant_menu, color: Colors.green),
+        label: AppLocalizations.of(context)!.recipes,
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(
+          Icons.chat,
+          color: widget.isGuest ? Colors.grey : Colors.green,
+        ),
+        label: AppLocalizations.of(context)!.chat,
+      ),
+      if (widget.isShared)
+        BottomNavigationBarItem(
+          icon: Icon(
+            Icons.notifications,
+            color: widget.isGuest ? Colors.grey : Colors.green,
+          ),
+          label: AppLocalizations.of(context)!.notifications,
+        ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.person, color: Colors.green),
+        label: AppLocalizations.of(context)!.profile,
+      ),
+    ];
+  }
+
   void _onItemTapped(int index) {
     if (widget.isGuest && (index == 2 || (widget.isShared && index == 3))) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This feature requires login')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.featureRequiresLogin)),
       );
       return;
     }
@@ -134,7 +140,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         return Scaffold(
           appBar: AppBar(
             title: Text(widget.group.name),
-            backgroundColor: _hexToColor(widget.group.color), // Use group's color
+            backgroundColor: groupColor, // Use group's color
             foregroundColor: Colors.white,
             automaticallyImplyLeading: true, // Back arrow to HomeScreen
             centerTitle: true,

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // Időbélyeg formázáshoz
+import 'package:intl/intl.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class GroupAndAIChatScreen extends StatefulWidget {
   final String groupId;
   final bool isGuest;
   final bool isShared;
-  final Color groupColor; // Csoport színe
+  final Color groupColor;
 
   const GroupAndAIChatScreen({
     Key? key,
@@ -33,7 +34,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
   void initState() {
     super.initState();
     if (!widget.isShared) {
-      _isAIChat = true; // Alapértelmezett AI csevegés nem megosztott csoportokban
+      _isAIChat = true;
     }
   }
 
@@ -54,7 +55,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending message: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorSendingMessage(e.toString()))),
       );
     } finally {
       setState(() {
@@ -104,7 +105,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
   void _toggleChat() {
     if (!widget.isShared) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This feature is only available in shared groups.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.featureOnlyInSharedGroups)),
       );
       return;
     }
@@ -141,7 +142,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
             final sender = data['sender'] ?? '';
             final timestamp = data['timestamp'] != null
                 ? (data['timestamp'] as Timestamp).toDate()
-                : DateTime.now(); // Visszaesés az aktuális időre, ha az időbélyeg null
+                : DateTime.now();
             final formattedTime = DateFormat('yyyy-MM-dd HH:mm').format(timestamp);
             final isMe = sender == _auth.currentUser?.email;
 
@@ -158,7 +159,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
                   crossAxisAlignment:
                   isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                   children: [
-                    if (!_isAIChat) // Küldő és időbélyeg csak csoportos csevegésben
+                    if (!_isAIChat)
                       Text(
                         sender,
                         style: const TextStyle(
@@ -170,7 +171,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
                       text,
                       style: const TextStyle(color: Colors.white),
                     ),
-                    if (!_isAIChat) // Időbélyeg csak csoportos csevegésben
+                    if (!_isAIChat)
                       Text(
                         formattedTime,
                         style: const TextStyle(
@@ -192,19 +193,19 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isAIChat ? 'AI Chat' : 'Group Chat'),
-        backgroundColor: widget.groupColor, // Csoport színe az AppBar-hoz
+        title: Text(_isAIChat ? AppLocalizations.of(context)!.aiChat : AppLocalizations.of(context)!.groupChat),
+        backgroundColor: widget.groupColor,
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: false, // Nincs vissza nyíl
+        automaticallyImplyLeading: false,
         actions: [
-          if (widget.isShared) // Toggle ikon csak megosztott csoportoknál
+          if (widget.isShared)
             IconButton(
               icon: Icon(
                 _isAIChat ? Icons.message : Icons.smart_toy,
                 color: Colors.white,
               ),
               onPressed: _toggleChat,
-              tooltip: 'Switch Chat',
+              tooltip: AppLocalizations.of(context)!.switchChat,
             ),
         ],
       ),
@@ -219,7 +220,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'Type a message...',
+                      hintText: AppLocalizations.of(context)!.typeAMessage,
                       filled: true,
                       fillColor: Colors.white24,
                       border: OutlineInputBorder(

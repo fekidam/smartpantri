@@ -8,9 +8,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:provider/provider.dart'; // Provider import hozzáadása
-import '../services/theme_provider.dart'; // ThemeProvider import hozzáadása
+import 'package:provider/provider.dart';
+import '../services/theme_provider.dart';
 import 'login.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class PrivacySecuritySettingsScreen extends StatefulWidget {
   const PrivacySecuritySettingsScreen({super.key});
@@ -83,7 +84,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
       } catch (e) {
         print('Error saving device info: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving device info: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorSavingDeviceInfo(e.toString()))),
         );
       }
     }
@@ -96,7 +97,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
     if (email == null) {
       print("User email is missing.");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User email is missing.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.userEmailMissing)),
       );
       return;
     }
@@ -108,8 +109,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
           DateTime.now().difference(_lastCodeRequestTime!).inSeconds < 60) {
         print("Rate limit: Please wait 60 seconds before requesting a new code.");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Please wait 60 seconds before requesting a new code.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.wait60SecondsForNewCode)),
         );
         return;
       }
@@ -171,12 +171,12 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
               setState(() => _twoFactorEnabled = true);
               await _saveSettings();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('2FA enabled via email.')),
+                SnackBar(content: Text(AppLocalizations.of(context)!.twoFAEnabled)),
               );
             } else {
               print("Invalid verification code received.");
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Invalid verification code.')),
+                SnackBar(content: Text(AppLocalizations.of(context)!.invalidVerificationCode)),
               );
             }
           } else {
@@ -190,7 +190,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
       } catch (e) {
         print("Error during 2FA setup: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error during 2FA setup: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorDuring2FASetup(e.toString()))),
         );
       }
     } else {
@@ -198,17 +198,17 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('Disable 2FA'),
-            content: const Text('Are you sure you want to disable Two Factor Authentication?'),
+            title: Text(AppLocalizations.of(context)!.disable2FA),
+            content: Text(AppLocalizations.of(context)!.confirmDisable2FA),
             actions: <Widget>[
               TextButton(
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
                 onPressed: () {
                   Navigator.of(context).pop(false);
                 },
               ),
               TextButton(
-                child: const Text('Disable', style: TextStyle(color: Colors.red)),
+                child: Text(AppLocalizations.of(context)!.disable, style: const TextStyle(color: Colors.red)),
                 onPressed: () {
                   Navigator.of(context).pop(true);
                 },
@@ -222,7 +222,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
         setState(() => _twoFactorEnabled = false);
         await _saveSettings();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('2FA disabled.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.twoFADisabled)),
         );
       }
     }
@@ -235,34 +235,33 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Enter Email Verification Code'),
+          title: Text(AppLocalizations.of(context)!.enterEmailVerificationCode),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('You have 10 minutes to enter the code before it expires.'),
+              Text(AppLocalizations.of(context)!.codeExpirationNote),
               const SizedBox(height: 16),
               TextField(
                 controller: codeController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: '6-digit code'),
+                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.sixDigitCodeLabel),
               ),
             ],
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
               onPressed: () {
                 Navigator.of(context).pop(null);
               },
             ),
             TextButton(
-              child: const Text('Resend Code'),
+              child: Text(AppLocalizations.of(context)!.resendCode),
               onPressed: () async {
                 if (_lastCodeRequestTime != null &&
                     DateTime.now().difference(_lastCodeRequestTime!).inSeconds < 60) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please wait 60 seconds before requesting a new code.')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.wait60SecondsForNewCode)),
                   );
                   return;
                 }
@@ -272,37 +271,37 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
                   await callable.call(<String, dynamic>{'email': email});
                   _lastCodeRequestTime = DateTime.now();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Code resent successfully.')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.codeResentSuccessfully)),
                   );
                 } on FirebaseFunctionsException catch (e) {
                   String errorMessage;
                   if (e.code == 'internal' &&
                       e.message?.contains('Failed to send email') == true) {
-                    errorMessage = 'Failed to resend email. Please try again later.';
+                    errorMessage = AppLocalizations.of(context)!.failedToResendEmail;
                   } else {
-                    errorMessage = 'Error resending code: ${e.message}';
+                    errorMessage = AppLocalizations.of(context)!.errorResendingCode(e.message ?? 'Unknown error');
                   }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(errorMessage)),
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Unexpected error resending code: $e')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.unexpectedErrorResendingCode(e.toString()))),
                   );
                 }
               },
             ),
             TextButton(
-              child: const Text('Verify'),
+              child: Text(AppLocalizations.of(context)!.verify),
               onPressed: () {
                 final code = codeController.text.trim();
                 if (code.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter the code.')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.pleaseEnterCode)),
                   );
                 } else if (code.length != 6 || !RegExp(r'^\d{6}$').hasMatch(code)) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a valid 6-digit code.')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.invalidCodeError)),
                   );
                 } else {
                   Navigator.of(context).pop(code);
@@ -319,7 +318,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
     final user = _auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No user is currently logged in.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.noUserLoggedIn)),
       );
       return;
     }
@@ -333,7 +332,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
 
       if (email.isEmpty || password.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email or password cannot be empty.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.emailOrPasswordEmpty)),
         );
         return;
       }
@@ -355,11 +354,11 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account successfully deleted.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.accountDeleted)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting account: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorDeletingAccount(e.toString()))),
       );
     }
   }
@@ -369,24 +368,24 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete Account'),
+          title: Text(AppLocalizations.of(context)!.deleteAccount),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Are you sure you want to delete your account? This action cannot be undone.'),
+              Text(AppLocalizations.of(context)!.confirmDeleteAccount),
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Enter your password to confirm',
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.enterPasswordToConfirm,
                 ),
               ),
             ],
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
               onPressed: () {
                 Navigator.of(context).pop(false);
               },
@@ -396,7 +395,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
               onPressed: () {
                 if (_passwordController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter your password.')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.pleaseEnterPassword)),
                   );
                   return;
                 }
@@ -429,26 +428,25 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
 
   @override
   Widget build(BuildContext context) {
-    // ThemeProvider lekérése
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Privacy and Security'),
-        backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+        title: Text(AppLocalizations.of(context)!.privacyAndSecurity),
+        backgroundColor: themeProvider.primaryColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
             SwitchListTile(
-              title: const Text('Two Factor Authentication (2FA)'),
+              title: Text(AppLocalizations.of(context)!.twoFactorAuthentication),
               value: _twoFactorEnabled,
               onChanged: (value) {
                 final user = FirebaseAuth.instance.currentUser;
                 if (user == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please log in to use 2FA')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.pleaseLogInToUse2FA)),
                   );
                   return;
                 }
@@ -457,7 +455,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
               },
             ),
             ListTile(
-              title: const Text('Logged In Devices'),
+              title: Text(AppLocalizations.of(context)!.loggedInDevices),
               onTap: () {
                 Navigator.push(
                   context,
@@ -468,7 +466,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
               },
             ),
             ListTile(
-              title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+              title: Text(AppLocalizations.of(context)!.deleteAccount, style: const TextStyle(color: Colors.red)),
               onTap: _deleteAccount,
             ),
           ],
@@ -485,23 +483,22 @@ class LoggedInDevicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final firestore = FirebaseFirestore.instance;
-    // ThemeProvider lekérése
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     if (user == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Logged In Devices'),
-          backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+          title: Text(AppLocalizations.of(context)!.loggedInDevices),
+          backgroundColor: themeProvider.primaryColor,
         ),
-        body: const Center(child: Text('User not logged in.')),
+        body: Center(child: Text(AppLocalizations.of(context)!.userNotLoggedInError)),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Logged In Devices'),
-        backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+        title: Text(AppLocalizations.of(context)!.loggedInDevices),
+        backgroundColor: themeProvider.primaryColor,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: firestore
@@ -515,11 +512,11 @@ class LoggedInDevicesScreen extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text(AppLocalizations.of(context)!.errorLoadingDevices(snapshot.error.toString())));
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No logged in devices found.'));
+            return Center(child: Text(AppLocalizations.of(context)!.noLoggedInDevicesFound));
           }
 
           return ListView.builder(
@@ -537,17 +534,17 @@ class LoggedInDevicesScreen extends StatelessWidget {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('OS: $osVersion'),
+                    Text(AppLocalizations.of(context)!.osLabel(osVersion)),
                     Text(
-                      'Last Login: ${lastLogin.toDate().toString()}',
+                      AppLocalizations.of(context)!.lastLoginLabel(lastLogin.toDate().toString()),
                       style: const TextStyle(fontSize: 12),
                     ),
                   ],
                 ),
                 trailing: TextButton(
-                  child: const Text(
-                    'Sign Out',
-                    style: TextStyle(color: Colors.red),
+                  child: Text(
+                    AppLocalizations.of(context)!.signOut,
+                    style: const TextStyle(color: Colors.red),
                   ),
                   onPressed: () async {
                     try {
@@ -559,11 +556,11 @@ class LoggedInDevicesScreen extends StatelessWidget {
                           .delete();
 
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('$deviceName signed out.')),
+                        SnackBar(content: Text(AppLocalizations.of(context)!.deviceSignedOut(deviceName))),
                       );
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error signing out: $e')),
+                        SnackBar(content: Text(AppLocalizations.of(context)!.errorSigningOut(e.toString()))),
                       );
                     }
                   },

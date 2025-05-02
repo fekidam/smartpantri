@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:smartpantri/services/storage_service.dart';
+import 'package:smartpantri/generated/l10n.dart';
 
 class WelcomeScreen extends StatefulWidget {
   final Function(bool)? setGuestMode;
@@ -54,7 +55,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
       if (googleUser == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Google sign-in cancelled.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.googleSignInCancelled)),
         );
         setState(() {
           _isLoading = false;
@@ -72,7 +73,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       User? user = userCredential.user;
 
       if (user != null) {
-        // Mentsük el a felhasználó adatait a Firestore-ban, de ne mentsük az FCM tokent
         await _firestore.collection('users').doc(user.uid).set({
           'birthDate': '',
           'email': user.email ?? '',
@@ -91,7 +91,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google sign-in error: $e')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.googleSignInError(e.toString()),
+          ),
+        ),
       );
     } finally {
       setState(() {
@@ -112,9 +116,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const Text(
-                  'SmartPantri',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.appTitle,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
                     color: Colors.white,
@@ -163,7 +167,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Log In'),
+                  child: Text(AppLocalizations.of(context)!.logIn),
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
@@ -174,7 +178,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Register'),
+                  child: Text(AppLocalizations.of(context)!.register),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
@@ -182,7 +186,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ? null
                       : () => signInWithGoogle(context),
                   icon: const Icon(Icons.login, color: Colors.white),
-                  label: const Text('Continue with Google'),
+                  label: Text(AppLocalizations.of(context)!.continueWithGoogle),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 ),
                 const SizedBox(height: 10),
@@ -191,7 +195,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     if (widget.setGuestMode != null) {
                       widget.setGuestMode!(true);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Continuing as Guest')),
+                        SnackBar(
+                          content: Text(AppLocalizations.of(context)!.continuingAsGuest),
+                        ),
                       );
                     }
                     Navigator.of(context).pushReplacementNamed('/home');
@@ -200,9 +206,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   ),
-                  child: const Text(
-                    'Continue as Guest',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.continueAsGuest,
+                    style: const TextStyle(
                       color: Colors.white,
                     ),
                   ),

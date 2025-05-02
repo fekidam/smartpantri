@@ -4,6 +4,7 @@ import '../services/theme_provider.dart';
 import 'expense_tracker.dart';
 import 'fridge_items.dart';
 import 'shopping_lists.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class GroupHomeScreen extends StatelessWidget {
   final String groupId;
@@ -19,7 +20,7 @@ class GroupHomeScreen extends StatelessWidget {
       builder: (context, themeProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Home'),
+            title: Text(AppLocalizations.of(context)!.homeTitle),
             backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
             foregroundColor: Colors.white,
             automaticallyImplyLeading: false,
@@ -27,7 +28,7 @@ class GroupHomeScreen extends StatelessWidget {
           body: ListView(
             children: [
               ListTile(
-                title: const Text("Expense Tracker"),
+                title: Text(AppLocalizations.of(context)!.expenseTracker),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -41,7 +42,7 @@ class GroupHomeScreen extends StatelessWidget {
                 },
               ),
               ListTile(
-                title: const Text("What's in the Fridge"),
+                title: Text(AppLocalizations.of(context)!.whatsInTheFridge),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -55,7 +56,7 @@ class GroupHomeScreen extends StatelessWidget {
                 },
               ),
               ListTile(
-                title: const Text("Shopping List"),
+                title: Text(AppLocalizations.of(context)!.shoppingList),
                 onTap: () {
                   Navigator.push(
                     context,

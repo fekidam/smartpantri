@@ -1,8 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../services/theme_provider.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class ThemeSettingsScreen extends StatefulWidget {
   const ThemeSettingsScreen({super.key});
@@ -20,8 +21,8 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Theme and Appearance'),
-            backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
+            title: Text(AppLocalizations.of(context)!.themeAndAppearance),
+            backgroundColor: themeProvider.primaryColor,
             foregroundColor: Colors.white,
           ),
           body: Padding(
@@ -32,7 +33,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
-                      'Note: Guest mode settings are saved locally on this device.',
+                      AppLocalizations.of(context)!.guestModeSettingsNote,
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontStyle: FontStyle.italic,
@@ -40,22 +41,22 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                     ),
                   ),
                 SwitchListTile(
-                  title: const Text('Dark Mode'),
+                  title: Text(AppLocalizations.of(context)!.darkMode),
                   value: themeProvider.isDarkMode,
                   onChanged: (value) async {
                     try {
                       await themeProvider.toggleDarkMode(value);
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error saving dark mode: $e')),
+                        SnackBar(content: Text(AppLocalizations.of(context)!.errorSavingDarkMode(e.toString()))),
                       );
                     }
                   },
                 ),
                 ListTile(
-                  title: const Text('Pick a Color'),
+                  title: Text(AppLocalizations.of(context)!.pickAColor),
                   subtitle: Text(
-                    'Current color',
+                    AppLocalizations.of(context)!.currentColor,
                     style: TextStyle(color: themeProvider.primaryColor),
                   ),
                   trailing: CircleAvatar(
@@ -68,7 +69,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                       builder: (context) {
                         Color selectedColor = themeProvider.primaryColor;
                         return AlertDialog(
-                          title: const Text('Pick a Color'),
+                          title: Text(AppLocalizations.of(context)!.pickAColor),
                           content: SingleChildScrollView(
                             child: BlockPicker(
                               pickerColor: themeProvider.primaryColor,
@@ -92,7 +93,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                               onPressed: () {
                                 Navigator.of(context).pop();
                               },
-                              child: const Text('Cancel'),
+                              child: Text(AppLocalizations.of(context)!.cancel),
                             ),
                             TextButton(
                               onPressed: () async {
@@ -101,11 +102,11 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                                   Navigator.of(context).pop();
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error saving color: $e')),
+                                    SnackBar(content: Text(AppLocalizations.of(context)!.errorSavingColor(e.toString()))),
                                   );
                                 }
                               },
-                              child: const Text('Save'),
+                              child: Text(AppLocalizations.of(context)!.save),
                             ),
                           ],
                         );

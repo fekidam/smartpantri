@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../services/theme_provider.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class AIChatScreen extends StatefulWidget {
   const AIChatScreen({Key? key}) : super(key: key);
@@ -31,7 +32,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
       await _sendToAI(text);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending message: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorSendingMessage(e.toString()))),
       );
     } finally {
       setState(() {
@@ -114,10 +115,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
       builder: (context, themeProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('AI Chat'),
-            backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
+            title: Text(AppLocalizations.of(context)!.aiChat),
+            backgroundColor: themeProvider.primaryColor,
             foregroundColor: Colors.white,
-            automaticallyImplyLeading: false, // No back arrow here
+            automaticallyImplyLeading: false,
           ),
           body: Column(
             children: [
@@ -130,7 +131,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
                       child: TextField(
                         controller: _messageController,
                         decoration: InputDecoration(
-                          hintText: 'Type a message...',
+                          hintText: AppLocalizations.of(context)!.typeAMessage,
                           filled: true,
                           fillColor: Colors.white24,
                           border: OutlineInputBorder(

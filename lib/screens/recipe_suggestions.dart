@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../services/theme_provider.dart';
 import 'allergy_selection.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class RecipeSuggestionsScreen extends StatefulWidget {
   final bool fromGroupScreen;
@@ -59,7 +60,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching recipes: $error')),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.unknownError}: $error')),
       );
     } finally {
       setState(() {
@@ -90,8 +91,8 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
   void _viewRecipeDetails(int recipeId) {
     if (widget.isGuest) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please log in to view recipe details.'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.featureRequiresLogin),
         ),
       );
     } else {
@@ -112,52 +113,49 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Dynamic image height, reduced to fit better
           recipe['image'] != null
               ? ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(10.0)),
             child: Image.network(
               recipe['image'],
-              height: MediaQuery.of(context).size.height * 0.15, // Reduced to 15% of screen height
+              height: MediaQuery.of(context).size.height * 0.15,
               width: double.infinity,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.broken_image, size: 100),
+                  Text(AppLocalizations.of(context)!.failedToLoadImage),
             ),
           )
               : const Icon(Icons.broken_image, size: 100),
-          // Recipe title with constrained height
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ConstrainedBox(
               constraints: const BoxConstraints(
-                minHeight: 30, // Reduced minimum height
-                maxHeight: 50, // Reduced maximum height to fit within constraints
+                minHeight: 30,
+                maxHeight: 50,
               ),
               child: Text(
-                recipe['title'] ?? 'Unknown Recipe',
+                recipe['title'] ?? AppLocalizations.of(context)!.unknownItem,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 14, // Slightly smaller font size to reduce height
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
-          // View Details button with reduced padding
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0), // Reduced vertical padding
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0), // Reduced button height
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
                 ),
                 onPressed: () => _viewRecipeDetails(recipe['id']),
-                child: const Text(
-                  'View Details',
-                  style: TextStyle(fontSize: 12), // Smaller font size for the button
+                child: Text(
+                  AppLocalizations.of(context)!.viewDetails,
+                  style: const TextStyle(fontSize: 12),
                 ),
               ),
             ),
@@ -173,8 +171,8 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
       builder: (context, themeProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Recipe Suggestions'),
-            backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
+            title: Text(AppLocalizations.of(context)!.recipeSuggestions),
+            backgroundColor: themeProvider.primaryColor,
             foregroundColor: Colors.white,
             automaticallyImplyLeading: widget.fromGroupScreen,
             actions: [
@@ -188,11 +186,11 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
           body: isLoading
               ? const Center(child: CircularProgressIndicator())
               : recipes.isEmpty
-              ? const Center(child: Text('No recipes available'))
+              ? Center(child: Text(AppLocalizations.of(context)!.noRecipesAvailable))
               : GridView.builder(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.65, // Increased to provide more height
+              childAspectRatio: 0.65,
             ),
             itemCount: recipes.length,
             itemBuilder: (context, index) {

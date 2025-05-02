@@ -4,9 +4,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LanguageProvider with ChangeNotifier {
   Locale _locale = const Locale('en');
 
+  LanguageProvider() {
+    loadLocale();
+  }
+
   Locale get locale => _locale;
 
-  // Nyelv betöltése a SharedPreferences-ből
   Future<void> loadLocale() async {
     final prefs = await SharedPreferences.getInstance();
     final languageCode = prefs.getString('languageCode') ?? 'en';
@@ -14,7 +17,6 @@ class LanguageProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Nyelv beállítása és mentése
   Future<void> setLocale(Locale newLocale) async {
     if (_locale == newLocale) return;
 

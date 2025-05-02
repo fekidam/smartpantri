@@ -6,8 +6,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart'; // Provider import hozzáadása
-import '../services/theme_provider.dart'; // ThemeProvider import hozzáadása
+import 'package:provider/provider.dart';
+import '../services/theme_provider.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -82,14 +83,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         if (emailController.text != user!.email) {
           await user!.verifyBeforeUpdateEmail(emailController.text);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Verification email sent. Please check your inbox.')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.verificationEmailSent)),
           );
         }
 
         if (passwordController.text.isNotEmpty) {
           if (passwordController.text.length < 6) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Password must be at least 6 characters long.")),
+              SnackBar(content: Text(AppLocalizations.of(context)!.passwordTooShortError)),
             );
             setState(() {
               _isLoading = false;
@@ -99,7 +100,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
           if (currentPasswordController.text.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please enter your current password to update the new password.')),
+              SnackBar(content: Text(AppLocalizations.of(context)!.currentPasswordRequiredError)),
             );
             setState(() {
               _isLoading = false;
@@ -122,14 +123,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your Profile is Updated!')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.profileUpdated)),
       );
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Something went wrong: $e")),
+        SnackBar(content: Text(AppLocalizations.of(context)!.somethingWentWrong(e.toString()))),
       );
     }
   }
@@ -153,14 +154,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: 'Crop Image',
+            toolbarTitle: AppLocalizations.of(context)!.cropImage,
             toolbarColor: Colors.deepOrange,
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true,
           ),
           IOSUiSettings(
-            title: 'Crop Image',
+            title: AppLocalizations.of(context)!.cropImage,
             aspectRatioLockEnabled: true,
           ),
         ],
@@ -173,7 +174,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       final bytes = await File(croppedFile.path).length();
       if (bytes > 2 * 1024 * 1024) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image too large. Max 2MB.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.imageTooLarge)),
         );
         return;
       }
@@ -219,7 +220,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile picture updated successfully!')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.profilePictureUpdated)),
       );
     } catch (e) {
       if (mounted) {
@@ -229,14 +230,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       print('Profile Picture Upload Error: $e');
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error uploading image: ${e.toString()}')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorUploadingImage(e.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // ThemeProvider lekérése
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     if (_isLoading) {
@@ -246,15 +246,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please log in to edit your profile.')),
+      return Scaffold(
+        body: Center(child: Text(AppLocalizations.of(context)!.pleaseLogInToEditProfile)),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile Settings'),
-        backgroundColor: themeProvider.primaryColor, // AppBar színe a ThemeProvider-ből
+        title: Text(AppLocalizations.of(context)!.profileSettings),
+        backgroundColor: themeProvider.primaryColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -285,22 +285,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             const SizedBox(height: 20),
             TextField(
               controller: firstNameController,
-              decoration: const InputDecoration(
-                labelText: 'First name',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.firstName,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: lastNameController,
-              decoration: const InputDecoration(
-                labelText: 'Last name',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.lastName,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              'Email',
+              AppLocalizations.of(context)!.email,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -322,7 +322,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             if (isGoogleUser) ...[
               const SizedBox(height: 8),
               Text(
-                'Managed by Google',
+                AppLocalizations.of(context)!.managedByGoogle,
                 style: TextStyle(
                   color: Colors.grey[600],
                   fontStyle: FontStyle.italic,
@@ -335,7 +335,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 controller: currentPasswordController,
                 obscureText: !_isCurrentPasswordVisible,
                 decoration: InputDecoration(
-                  labelText: 'Current Password (required for password update)',
+                  labelText: AppLocalizations.of(context)!.currentPasswordLabel,
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -355,7 +355,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 controller: passwordController,
                 obscureText: !_isPasswordVisible,
                 decoration: InputDecoration(
-                  labelText: 'New Password (optional)',
+                  labelText: AppLocalizations.of(context)!.newPasswordLabel,
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -374,7 +374,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ],
             ElevatedButton(
               onPressed: _updateProfile,
-              child: const Text('Save'),
+              child: Text(AppLocalizations.of(context)!.save),
             ),
           ],
         ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/data.dart';
 import 'group_detail.dart';
 import '../services/theme_provider.dart';
+import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
 
 class CreateGroupScreen extends StatefulWidget {
   final bool isGuest;
@@ -68,17 +69,17 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         } catch (e) {
           print('Error creating group: $e');
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Failed to create group. Please try again.")),
+            SnackBar(content: Text(AppLocalizations.of(context)!.failedToCreateGroup)),
           );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("User not logged in")),
+          SnackBar(content: Text(AppLocalizations.of(context)!.userNotLoggedIn)),
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a group name.")),
+        SnackBar(content: Text(AppLocalizations.of(context)!.pleaseEnterGroupName)),
       );
     }
   }
@@ -89,14 +90,14 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       builder: (context, themeProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text("Create New Group"),
+            title: Text(AppLocalizations.of(context)!.createNewGroup),
             backgroundColor: themeProvider.primaryColor, // Use theme's primaryColor
             foregroundColor: Colors.white,
           ),
           body: widget.isGuest
-              ? const Center(
+              ? Center(
             child: Text(
-              'Creating groups is not available in Guest Mode. Please log in to access this feature.',
+              AppLocalizations.of(context)!.guestModeRestriction,
               textAlign: TextAlign.center,
             ),
           )
@@ -106,10 +107,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               children: [
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: "Group Name"),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.groupName),
                 ),
                 const SizedBox(height: 20),
-                const Text("Select Color"),
+                Text(AppLocalizations.of(context)!.selectColor),
                 const SizedBox(height: 10),
                 SizedBox(
                   height: 200,
@@ -142,7 +143,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _saveGroup,
-                  child: const Text("Add Group"),
+                  child: Text(AppLocalizations.of(context)!.addGroup),
                 ),
               ],
             ),
