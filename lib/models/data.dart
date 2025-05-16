@@ -10,6 +10,7 @@ class ShoppingItem {
 class Expense {
   String category;
   double amount;
+
   Expense({required this.category, required this.amount});
 }
 
@@ -45,10 +46,13 @@ class Group {
   }
 
   factory Group.fromJson(String id, Map<String, dynamic> json) {
+    String safeColor = json['color'] is String && (json['color'] as String).length == 6
+        ? json['color']
+        : 'FFFFFF';
     return Group(
       id: id,
-      name: json['name'],
-      color: json['color'],
+      name: json['name'] ?? '',
+      color: safeColor,
       userId: json['userId'] ?? '',
       sharedWith: List<String>.from(json['sharedWith'] ?? []),
     );
@@ -56,10 +60,13 @@ class Group {
 
   factory Group.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    String safeColor = data['color'] is String && (data['color'] as String).length == 6
+        ? data['color']
+        : 'FFFFFF';
     return Group(
       id: doc.id,
       name: data['name'] ?? '',
-      color: data['color'] ?? 'FFFFFF',
+      color: safeColor,
       userId: data['userId'] ?? '',
       sharedWith: List<String>.from(data['sharedWith'] ?? []),
     );

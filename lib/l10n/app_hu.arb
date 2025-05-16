@@ -1,0 +1,625 @@
+{
+  "@@locale": "hu",
+  "appTitle": "SmartPantri",
+  "languageAndRegion": "Nyelv és Régió",
+  "selectLanguage": "Nyelv kiválasztása",
+  "selectRegion": "Régió kiválasztása",
+  "english": "Angol",
+  "hungarian": "Magyar",
+  "usa": "USA",
+  "hungary": "Magyarország",
+  "recipeSuggestions": "Receptajánlatok",
+  "noRecipesAvailable": "Nincsenek elérhető receptek",
+  "viewDetails": "Részletek megtekintése",
+  "failedToLoadImage": "Nem sikerült betölteni a recept képet. Kérlek, ellenőrizd a kapcsolatodat.",
+  "failedToLoadGroup": "Hiba a csoport betöltésekor: {error}",
+  "logIn": "Bejelentkezés",
+  "register": "Regisztráció",
+  "continueWithGoogle": "Folytatás Google-lal",
+  "continueAsGuest": "Folytatás vendégként",
+  "continuingAsGuest": "Folytatás vendégként",
+  "googleSignInCancelled": "Google bejelentkezés megszakítva.",
+  "googleSignInError": "Google bejelentkezési hiba: {error}",
+  "enterYourEmail": "Add meg az email címed",
+  "password": "Jelszó",
+  "pleaseFillInBothFields": "Kérlek, töltsd ki mindkét mezőt!",
+  "pleaseVerifyYourEmail": "Kérlek, erősítsd meg az email címedet a bejelentkezéshez.",
+  "userNotFound": "Felhasználó nem található.",
+  "wrongPassword": "Érvénytelen jelszó.",
+  "invalidEmail": "Érvénytelen email cím.",
+  "loginError": "Bejelentkezési hiba: {error}",
+  "dontHaveAnAccountRegister": "Nincs fiókod? Regisztrálj",
+  "firstName": "Keresztnév",
+  "lastName": "Vezetéknév",
+  "email": "Email",
+  "confirmPassword": "Jelszó megerősítése",
+  "selectBirthDate": "Születési dátum kiválasztása",
+  "firstNameRequired": "A keresztnév kötelező.",
+  "lastNameRequired": "A vezetéknév kötelező.",
+  "emailRequired": "Az email kötelező.",
+  "invalidEmailFormat": "Kérlek, adj meg egy érvényes email címet.",
+  "passwordRequired": "A jelszó kötelező.",
+  "passwordTooShort": "A jelszónak legalább 6 karakterből kell állnia.",
+  "confirmPasswordRequired": "Kérlek, erősítsd meg a jelszavadat.",
+  "passwordsDoNotMatch": "A jelszavak nem egyeznek.",
+  "emailAlreadyInUse": "Ez az email cím már használatban van.",
+  "weakPassword": "A jelszó túl gyenge.",
+  "registrationFailed": "A regisztráció váratlan hiba miatt sikertelen.",
+  "registrationError": "Hiba történt a regisztráció során.",
+  "unknownError": "Ismeretlen hiba történt.",
+  "verifyEmail": "Email megerősítése",
+  "verificationEmailSent": "Egy megerősítő emailt küldtünk az email címedre.",
+  "iHaveVerifiedMyEmail": "Megerősítettem az email címemet",
+  "pleaseVerifyYourEmailFirst": "Kérlek, először erősítsd meg az email címedet.",
+  "noUserFound": "Nincs ilyen felhasználó.",
+  "errorSendingVerificationEmail": "Hiba a megerősítő email küldésekor: {error}",
+  "yourGroups": "Csoportjaid",
+  "demoGroup": "Demó Csoport",
+  "noGroupsFound": "Nem találhatóak csoportok",
+  "shared": "Megosztott",
+  "editGroup": "Csoport szerkesztése",
+  "groupName": "Csoport neve",
+  "groupTagColor": "Csoport címke színe",
+  "cancel": "Mégse",
+  "save": "Mentés",
+  "groupUpdatedSuccessfully": "Csoport sikeresen frissítve",
+  "groupDeleted": "Csoport törölve",
+  "errorFetchingGroups": "Hiba a csoportok lekérésekor: {error}",
+  "viewYourGroups": "Összesített Lista",
+  "home": "Főoldal",
+  "recipes": "Receptek",
+  "chat": "Csevegés",
+  "notifications": "Értesítések",
+  "profile": "Profil",
+  "featureRequiresLogin": "Ez a funkció bejelentkezést igényel",
+  "createNewGroup": "Új csoport létrehozása",
+  "selectColor": "Szín kiválasztása",
+  "addGroup": "Csoport hozzáadása",
+  "pleaseEnterGroupName": "Kérlek, add meg a csoport nevét.",
+  "userNotLoggedIn": "A felhasználó nincs bejelentkezve",
+  "failedToCreateGroup": "Nem sikerült létrehozni a csoportot. Kérlek, próbáld újra.",
+  "guestModeRestriction": "A csoportok létrehozása nem elérhető vendég módban. Kérlek, jelentkezz be a funkció használatához.",
+  "shareGroup": "Csoport megosztása",
+  "enterEmailToShareWith": "Add meg az email címet a megosztáshoz",
+  "pleaseEnterEmailAddress": "Kérlek, add meg az email címet.",
+  "groupSharedSuccessfully": "Csoport sikeresen megosztva! A felhasználó értesítve lett.",
+  "errorSharingGroup": "Hiba a csoport megosztása során: {error}",
+  "aggregatedShoppingList": "Összevont bevásárlólista",
+  "noItemsInConsolidatedList": "Nincsenek elemek az összevont listában.",
+  "quantityLabel": "Mennyiség",
+  "priceLabel": "Ár",
+  "unitLabel": "Egység",
+  "unknownItem": "Ismeretlen",
+  "editItem": "Szerkesztés: {itemName}",
+  "currencySymbol": "Ft",
+  "notAvailable": "N/A",
+  "homeTitle": "Főoldal",
+  "expenseTracker": "Kiadáskövető",
+  "whatsInTheFridge": "Mi van a hűtőben?",
+  "shoppingList": "Bevásárlólista",
+  "monthlySummary": "Havi összegzés",
+  "totalExpense": "Összes kiadás",
+  "byUsers": "Felhasználók szerint:",
+  "ok": "OK",
+  "noExpensesInGuestMode": "Vendég módban nem érhetők el kiadások.",
+  "noExpensesFound": "Nem találhatóak kiadások.",
+  "accessDenied": "Hozzáférés megtagadva",
+  "noAccessToGroup": "Nincs hozzáférésed ehhez a csoporthoz.",
+  "noItemsFoundInFridge": "Nem található elem a hűtőben.",
+  "itemExpiringSoon": "Termék hamarosan lejár",
+  "itemExpiringMessage": "{itemName} lejár ekkor: {expirationDate}!",
+  "expiration": "Lejárat",
+  "setExpirationDateTime": "Lejárati dátum és idő beállítása",
+  "errorSavingItem": "Hiba az elem mentésekor",
+  "expires": "Lejár",
+  "noName": "Névtelen",
+  "servingsLabel": "Adagok",
+  "ingredientsLabel": "Hozzávalók",
+  "instructionsLabel": "Elkészítés",
+  "noInstructionsAvailable": "Nincsenek elérhető utasítások",
+  "failedToLoadRecipeDetails": "Nem sikerült betölteni a recept részleteit",
+  "aiChat": "AI Csevegés",
+  "groupChat": "Csoportos Csevegés",
+  "typeAMessage": "Írj egy üzenetet...",
+  "enterMessage": "Üzenet írása...",
+  "errorSendingMessage": "Hiba az üzenet küldésekor: {error}",
+  "needSharedGroupForFeature": "Ehhez a funkcióhoz megosztott csoport szükséges.",
+  "featureOnlyInSharedGroups": "Ez a funkció csak megosztott csoportokban érhető el.",
+  "switchChat": "Csevegés váltása",
+  "notificationsNotAvailableInGuestMode": "Az értesítések nem érhetők el vendég módban. Kérlek, jelentkezz be a funkció használatához.",
+  "noNotificationsFound": "Nem találhatóak értesítések.",
+  "errorLoadingNotifications": "Hiba az értesítések betöltésekor: {error}",
+  "goingShopping": "Bevásárolni megyek",
+  "whatsMissing": "Mi hiányzik?",
+  "whosGoingShopping": "Ki megy bevásárolni?",
+  "iAmGoingShoppingToday": "Ma bevásárolni megyek.",
+  "whatsMissingFromShoppingList": "Mi hiányzik a bevásárlólistáról?",
+  "whosGoingShoppingToday": "Ki megy ma bevásárolni?",
+  "sender": "Feladó: {sender}",
+  "noMessage": "Nincs üzenet",
+  "noTimestampAvailable": "Nincs elérhető időbélyeg",
+  "settings": "Beállítások",
+  "profileSettings": "Profilbeállítások",
+  "privacyAndSecurity": "Adatvédelem és Biztonság",
+  "themeAndAppearance": "Téma és Megjelenés",
+  "returnToWelcomeScreen": "Vissza a Üdvözlőképernyőhöz",
+  "logOut": "Kijelentkezés",
+  "errorLoggingOut": "Hiba a kijelentkezés során: {error}",
+  "guestModeSettingsNote": "Megjegyzés: A vendég mód beállításai helyben, ezen az eszközön kerülnek mentésre.",
+  "darkMode": "Sötét Mód",
+  "pickAColor": "Szín kiválasztása",
+  "currentColor": "Jelenlegi szín",
+  "errorSavingDarkMode": "Hiba a sötét mód mentése során: {error}",
+  "errorSavingColor": "Hiba a szín mentése során: {error}",
+  "pleaseLogInToEditProfile": "Kérlek, jelentkezz be a profil szerkesztéséhez.",
+  "cropImage": "Kép kivágása",
+  "currentPasswordLabel": "Jelenlegi Jelszó (jelszófrissítéshez szükséges)",
+  "newPasswordLabel": "Új Jelszó (opcionális)",
+  "passwordTooShortError": "A jelszónak legalább 6 karakterből kell állnia.",
+  "currentPasswordRequiredError": "Kérlek, add meg a jelenlegi jelszavadat az új jelszó frissítéséhez.",
+  "profileUpdated": "A profilod frissítve!",
+  "somethingWentWrong": "Valami hiba történt: {error}",
+  "imageTooLarge": "A kép túl nagy. Maximum 2MB.",
+  "profilePictureUpdated": "Profilkép sikeresen frissítve!",
+  "errorUploadingImage": "Hiba a kép feltöltése során: {error}",
+  "managedByGoogle": "Google által kezelve",
+  "twoFactorAuthentication": "Kétfaktoros Hitelesítés (2FA)",
+  "loggedInDevices": "Bejelentkezett Eszközök",
+  "deleteAccount": "Fiók Törlése",
+  "confirmDeleteAccount": "Biztosan törölni szeretnéd a fiókodat? Ez a művelet nem vonható vissza.",
+  "pleaseLogInToUse2FA": "Kérlek, jelentkezz be a 2FA használatához",
+  "errorSavingDeviceInfo": "Hiba az eszközinformációk mentése során: {error}",
+  "userEmailMissing": "A felhasználói email hiányzik.",
+  "wait60SecondsForNewCode": "Kérlek, várj 60 másodpercet, mielőtt új kódot kérsz.",
+  "disable2FA": "2FA Kikapcsolása",
+  "confirmDisable2FA": "Biztosan ki szeretnéd kapcsolni a Kétfaktoros Hitelesítést?",
+  "disable": "Kikapcsolás",
+  "twoFAEnabled": "2FA engedélyezve emailen keresztül.",
+  "invalidVerificationCode": "Érvénytelen ellenőrző kód.",
+  "twoFADisabled": "2FA kikapcsolva.",
+  "errorDuring2FASetup": "Hiba a 2FA beállítása során: {error}",
+  "enterEmailVerificationCode": "Add meg az Email Ellenőrző Kódot",
+  "codeExpirationNote": "10 perced van a kód megadására, mielőtt lejár.",
+  "sixDigitCodeLabel": "6 jegyű kód",
+  "resendCode": "Kód Újraküldése",
+  "verify": "Ellenőrzés",
+  "pleaseEnterCode": "Kérlek, add meg a kódot.",
+  "invalidCodeError": "Kérlek, adj meg egy érvényes 6 jegyű kódot.",
+  "codeResentSuccessfully": "Kód sikeresen újraküldve.",
+  "failedToResendEmail": "Nem sikerült újraküldeni az emailt. Kérlek, próbáld újra később.",
+  "errorResendingCode": "Hiba a kód újraküldése során: {error}",
+  "unexpectedErrorResendingCode": "Váratlan hiba a kód újraküldése során: {error}",
+  "noUserLoggedIn": "Jelenleg nincs bejelentkezett felhasználó.",
+  "emailOrPasswordEmpty": "Az email vagy jelszó nem lehet üres.",
+  "enterPasswordToConfirm": "Add meg a jelszavadat a megerősítéshez",
+  "pleaseEnterPassword": "Kérlek, add meg a jelszavadat.",
+  "accountDeleted": "Fiók sikeresen törölve.",
+  "errorDeletingAccount": "Hiba a fiók törlése során: {error}",
+  "userNotLoggedInError": "A felhasználó nincs bejelentkezve.",
+  "noLoggedInDevicesFound": "Nem találhatóak bejelentkezett eszközök.",
+  "errorLoadingDevices": "Hiba az eszközök betöltése során: {error}",
+  "osLabel": "OS: {osVersion}",
+  "lastLoginLabel": "Utolsó Bejelentkezés: {lastLogin}",
+  "signOut": "Kijelentkezés",
+  "deviceSignedOut": "{deviceName} kijelentkezett.",
+  "errorSigningOut": "Hiba a kijelentkezés során: {error}",
+  "enableNotifications": "Értesítések Engedélyezése",
+  "messageNotifications": "Üzenet Értesítések",
+  "updateNotifications": "Frissítési Értesítések",
+  "selectAllergies": "Allergiák Kiválasztása",
+  "selectAll": "Összes Kiválasztása",
+  "deselectAll": "Összes Kiválasztás Törlése",
+  "allergyDairy": "Tejtermék",
+  "allergyEgg": "Tojás",
+  "allergyGluten": "Glutén",
+  "allergyPeanut": "Földimogyoró",
+  "allergySeafood": "Tengeri ételek",
+  "allergySesame": "Szezám",
+  "allergyShellfish": "Kagylók",
+  "allergySoy": "Szója",
+  "allergySulfite": "Szulfit",
+  "allergyTreeNut": "Diófélék",
+  "allergyWheat": "Búza",
+  "guestCartLimitMessage": "A vendég felhasználók legfeljebb {limit} terméket adhatnak hozzá. Kérlek, jelentkezz be, hogy többet adhass hozzá.",
+  "itemAlreadySelectedBy": "Ezt a terméket már {selectedBy} kiválasztotta.",
+  "onlyDeleteOwnItems": "Csak azokat a termékeket törölheted, amelyeket te adtál hozzá.",
+  "onlyEditOwnItems": "Csak azokat a termékeket szerkesztheted, amelyeket te adtál hozzá.",
+  "searchForProducts": "Termékek keresése",
+  "shoppingCart": "Bevásárlókosár",
+  "itemRemoved": "{itemName} eltávolítva",
+  "selectedBy": "Kiválasztotta: {selectedBy}",
+  "unitKg": "kilogramm",
+  "unitG": "gramm",
+  "unitPcs": "darab",
+  "unitLiters": "liter",
+  "addNewProduct": "Új termék hozzáadása",
+  "nameLabelEn": "Név (angol, opcionális)",
+  "nameLabelHu": "Név (magyar)",
+  "categoryLabelEn": "Kategória (angol, opcionális)",
+  "categoryLabelHu": "Kategória (magyar)",
+  "fillAllFields": "Kérlek, töltsd ki az összes kötelező mezőt!",
+  "productAdded": "Termék sikeresen hozzáadva!",
+  "optionalFieldsNote": "Az angol mezők kitöltése nem kötelező magyar nyelvi beállítás esetén.",
+  "fillAtLeastOneName": "Kérlek töltsd ki legalább az egyik nevet (magyar vagy angol)!",
+  "fillAtLeastOneCategory": "Kérlek töltsd ki legalább az egyik kategóriát (magyar vagy angol)!",
+  "fillHungarianName": "Kérlek töltsd ki a magyar nevet!",
+  "fillHungarianCategory": "Kérlek töltsd ki a magyar kategóriát!",
+  "fillEnglishName": "Kérlek töltsd ki az angol nevet!",
+  "fillEnglishCategory": "Kérlek töltsd ki az angol kategóriát!",
+  "unitLabel": "Mértékegység",
+  "translationApiKeyMissing": "Hiányzik a Google Translate API kulcs.",
+  "failedToTranslateText": "Nem sikerült a szöveg fordítása: {statusCode} - {body}",
+  "translationError": "Fordítási hiba: {error}",
+  "errorCheckingVerification": "Hiba az email ellenőrzése során: {error}",
+  "addToCart": "Hozzáadás a kosárhoz: {itemName}",
+  "itemEdited": "Tétel szerkesztve: {itemName}",
+  "guest": "Vendég",
+  "fairShare": "Tisztességes rész",
+  "perUser": "felhasználónként",
+  "priceLabel": "Ár",
+  "totalLabel": "Összesen",
+  "unknown": "Ismeretlen",
+  "errorCheckingGroupMembership": "Hiba a csoporttagság ellenőrzése során: {error}",
+  "apiKeyMissing": "Hiányzik az OpenAI API kulcs.",
+  "aiResponseError": "Hiba az AI válasz lekérése során: Állapot {statusCode}, {body}",
+  "failedToReceiveAIResponse": "Nem sikerült választ kapni az AI-tól.",
+  "noGroupIdFound": "Nem található csoport azonosító.",
+  "groupNotFound": "A csoport nem található.",
+  "errorNavigatingToGroupChat": "Hiba a csoportos csevegésre navigálás során: {error}",
+  "noMessagesYet": "Még nincsenek üzenetek.",
+  "welcomeToYourGroups": "Üdvözöljük a Csoportjaidnál!",
+  "yourGroupsInfo": "Ez a képernyő segít a csoportjaid kezelésében. Ha több csoportból szeretnél termékeket megvásárolni, azok itt összevonásra kerülnek, így nem kell mindig egyenként megnézned a csoportok bevásárlólistáit. Csak kattints az Összesített Lista gombra!",
+  "gotIt": "Megértettem",
+  "youLeftTheGroup": "Elhagytad a csoportot.",
+  "welcomeToSmartPantri": "Üdvözöljük a SmartPantri-ban!",
+  "welcomeDialogMessage": "Ez az alkalmazás segít a bevásárlólisták kezelésére több csoportban. Adjon hozzá termékeket, kövesse nyomon a kiadásokat, és nézze meg, mi van a hűtőjében – mindezt egy helyen.",
+  "yourGroupsInfoTitle": "Információ a Csoportjaidról",
+  "aggregatedListInfoTitle": "Az Összevont Bevásárlólistáról",
+  "aggregatedListInfoMessage": "Ebben a listában a jelölőnégyzettel megjelölheti a megvásárolt termékeket. Ha egy terméket a jelölőnégyzet bepipálásával töröl, az hozzáadódik a Kiadáskövetőhöz és a 'Mi van a hűtőben?' szekcióhoz. Ha nincs bepipálva, a termék egyszerűen törlődik.",
+  "alreadyHaveAccountLogin": "Már van fiókod? Jelentkezz be",
+  "registrationErrorUnexpected": "Váratlan regisztrációs hiba.",
+  "tooManyRequests": "Túl sok kérés.",
+  "outOfScopeResponse": "Sajnos erre a kérdésre nem tudok válaszolni, csak az alkalmazás használatával és receptekkel kapcsolatban tudok segíteni.",
+  "gradientOpacity": "Gradiens átlátszóság",
+  "iconStyle": "Ikonstílus",
+  "@iconStyle": {
+    "description": "Címke az ikonstílus kiválasztásához."
+  },
+  "@gradientOpacity": {
+    "description": "Címke a gradiens átlátszóság beállításához."
+  },
+  "fontSize": "Betűméret",
+  "@fontSize": {
+    "description": "Címke a betűméret beállításához."
+  },
+  "useGlobalTheme": "Globális téma használata",
+  "@useGlobalTheme": {
+    "description": "Címke a kapcsolóhoz, amely a globális téma vagy a csoportspecifikus színek közötti váltást vezérli."
+  },
+  "delete": "Törlés",
+  "@delete": {
+    "description": "Gomb felirat, fiók vagy termék eltávolításához."
+  },
+  "@registrationFailed": {
+    "description": "Hibaüzenet, amikor a regisztráció váratlan hiba miatt sikertelen."
+  },
+  "@outOfScopeResponse": {
+    "description": "Üzenet, amely akkor jelenik meg, ha az AI nem tud válaszolni a kérdésre, mert az nem az alkalmazás használatával vagy receptekkel kapcsolatos."
+  },
+  "@failedToLoadGroup": {
+    "description": "Hibaüzenet, amikor a csoport betöltése sikertelen",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@googleSignInError": {
+    "description": "Hibaüzenet a Google bejelentkezés sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@loginError": {
+    "description": "Hibaüzenet a bejelentkezés sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorFetchingGroups": {
+    "description": "Hibaüzenet a csoportok lekérése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorSharingGroup": {
+    "description": "Hibaüzenet a csoport megosztása sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@editItem": {
+    "description": "Cím az elem szerkesztési párbeszédpanelhez",
+    "placeholders": {
+      "itemName": {
+        "type": "String"
+      }
+    }
+  },
+  "@itemExpiringMessage": {
+    "description": "Értesítés szöveg, ha egy termék hamarosan lejár",
+    "placeholders": {
+      "itemName": {
+        "type": "String"
+      },
+      "expirationDate": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorSendingMessage": {
+    "description": "Hibaüzenet az üzenet küldése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorLoadingNotifications": {
+    "description": "Hibaüzenet az értesítések betöltése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@sender": {
+    "description": "Címke az értesítés feladójához",
+    "placeholders": {
+      "sender": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorLoggingOut": {
+    "description": "Hibaüzenet a kijelentkezés sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorSavingDarkMode": {
+    "description": "Hibaüzenet a sötét mód mentése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorSavingColor": {
+    "description": "Hibaüzenet a szín mentése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@somethingWentWrong": {
+    "description": "Hibaüzenet általános hibákhoz",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorUploadingImage": {
+    "description": "Hibaüzenet a kép feltöltése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorSavingDeviceInfo": {
+    "description": "Hibaüzenet az eszközinformációk mentése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorDuring2FASetup": {
+    "description": "Hibaüzenet a 2FA beállítása sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorResendingCode": {
+    "description": "Hibaüzenet a kód újraküldése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@unexpectedErrorResendingCode": {
+    "description": "Váratlan hiba a kód újraküldése során",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorDeletingAccount": {
+    "description": "Hibaüzenet a fiók törlése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorLoadingDevices": {
+    "description": "Hibaüzenet az eszközök betöltése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorSigningOut": {
+    "description": "Hibaüzenet a kijelentkezés sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@deviceSignedOut": {
+    "description": "Üzenet, amikor egy eszköz kijelentkezett",
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+  "@osLabel": {
+    "description": "Címke az operációs rendszer verziójához",
+    "placeholders": {
+      "osVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "@lastLoginLabel": {
+    "description": "Címke az utolsó bejelentkezés idejéhez",
+    "placeholders": {
+      "lastLogin": {
+        "type": "String"
+      }
+    }
+  },
+  "@guestCartLimitMessage": {
+    "description": "Üzenet, amikor a vendég felhasználó eléri a kosár korlátot",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "@itemAlreadySelectedBy": {
+    "description": "Üzenet, amikor egy terméket már egy másik felhasználó kiválasztott",
+    "placeholders": {
+      "selectedBy": {
+        "type": "String"
+      }
+    }
+  },
+  "@itemRemoved": {
+    "description": "Üzenet, amikor egy terméket eltávolítanak a kosárból",
+    "placeholders": {
+      "itemName": {
+        "type": "String"
+      }
+    }
+  },
+  "@selectedBy": {
+    "description": "Címke, hogy ki választotta ki a terméket",
+    "placeholders": {
+      "selectedBy": {
+        "type": "String"
+      }
+    }
+  },
+  "@failedToTranslateText": {
+    "description": "Hibaüzenet a szöveg fordításának sikertelenségére",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      },
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "@translationError": {
+    "description": "Hibaüzenet általános fordítási hibákhoz",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorSendingVerificationEmail": {
+    "description": "Hibaüzenet a megerősítő email küldése sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorCheckingVerification": {
+    "description": "Hibaüzenet az email ellenőrzés sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@addToCart": {
+    "description": "Cím a kosárhoz adási párbeszédpanelhez",
+    "placeholders": {
+      "itemName": {
+        "type": "String"
+      }
+    }
+  },
+  "@itemEdited": {
+    "description": "Üzenet, amikor egy tétel szerkesztése megtörténik",
+    "placeholders": {
+      "itemName": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorCheckingGroupMembership": {
+    "description": "Hibaüzenet a csoporttagság ellenőrzésének sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiResponseError": {
+    "description": "Hibaüzenet az AI válasz lekérése sikertelenségére",
+    "placeholders": {
+      "statusCode": {
+        "type": "String"
+      },
+      "body": {
+        "type": "String"
+      }
+    }
+  },
+  "@errorNavigatingToGroupChat": {
+    "description": "Hibaüzenet a csoportos csevegésre navigálás sikertelenségére",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "continueToApp": "Folytatás az alkalmazásban",
+  "emailVerifiedSuccessfully": "Email sikeresen megerősítve!",
+  "offlineModeMessage": "Offline módban vagy. Előfordulhat, hogy néhány funkció nem megfelelő."
+}

@@ -11,17 +11,18 @@ class ExpenseService {
         .snapshots();
   }
 
-  Future<void> addExpense(String groupId, String category, int amount) async {
+  Future<void> addExpense(String groupId, String category, double amount) async {
     await FirebaseFirestore.instance
         .collection('expense_tracker')
         .add({
+      'groupId': groupId,
       'category': category,
-      'amount': amount,
+      'amount': amount, // USD-ben mentjük
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-
-  Future<void> updateExpense(String groupId, String docId, String category, int amount) async {
+  Future<void> updateExpense(String groupId, String docId, String category, double amount) async {
     await _firestore
         .collection('groups')
         .doc(groupId)
@@ -39,4 +40,3 @@ class ExpenseService {
         .delete();
   }
 }
-

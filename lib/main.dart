@@ -6,29 +6,29 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smartpantri/screens/ai_chat_screen.dart';
-import 'package:smartpantri/screens/group_and_ai_chat_screen.dart';
-import 'package:smartpantri/screens/theme_settings.dart';
-import 'package:smartpantri/services/app_state_provider.dart';
-import 'package:smartpantri/services/language_provider.dart';
+import 'package:smartpantri/screens/chats/ai_chat.dart';
+import 'package:smartpantri/screens/chats/group_and_ai_chat.dart';
+import 'package:smartpantri/screens/settings/theme_settings.dart';
+import 'package:smartpantri/Providers/app_state_provider.dart';
+import 'package:smartpantri/Providers/language_provider.dart';
 import 'package:smartpantri/services/storage_service.dart';
-import 'services/firebase_options.dart';
-import 'screens/welcome_screen.dart';
-import 'groups/group_home.dart';
-import 'screens/login.dart';
-import 'screens/register.dart';
-import 'screens/verify_email.dart';
+import 'Config/firebase_options.dart';
+import 'screens/welcomescreen/welcome_screen.dart';
+import 'screens/groups/group_home.dart';
+import 'screens/welcomescreen/login.dart';
+import 'screens/welcomescreen/register.dart';
+import 'screens/welcomescreen/verify_email.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'services/theme_provider.dart';
+import 'Providers/theme_provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:smartpantri/screens/notifications.dart';
-import 'package:smartpantri/screens/settings.dart';
+import 'package:smartpantri/screens/notifications/notifications.dart';
+import 'package:smartpantri/screens/settings/settings.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:smartpantri/models/data.dart';
-import 'package:smartpantri/groups/group_detail.dart';
+import 'package:smartpantri/screens/groups/group_detail.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -101,6 +101,10 @@ Future<void> main() async {
 
   await initializeLocalNotifications();
 
+  // LanguageProvider inicializálása és a mentett nyelv betöltése
+  final languageProvider = LanguageProvider();
+  await languageProvider.loadLocale();
+
   runApp(
     MultiProvider(
       providers: [
@@ -108,18 +112,9 @@ Future<void> main() async {
           create: (_) => ThemeProvider(
             isDarkMode: true,
             primaryColor: Colors.blue,
-          ),
+          )..loadThemeAsync(),
         ),
-        ChangeNotifierProvider<LanguageProvider>(
-          create: (_) {
-            final languageProvider = LanguageProvider();
-            SharedPreferences.getInstance().then((prefs) {
-              final savedLocale = prefs.getString('locale') ?? 'en';
-              languageProvider.setLocale(Locale(savedLocale));
-            });
-            return languageProvider;
-          },
-        ),
+        ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
         ChangeNotifierProvider(create: (_) => AppStateProvider()),
       ],
       child: const MyApp(),
@@ -319,6 +314,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   Future<void> _saveFCMToken(String userId, String token) async {
+    // Ellenőrizzük, hogy a felhasználó be van-e jelentkezve
+    if (FirebaseAuth.instance.currentUser == null) {
+      print("User is not logged in, skipping FCM token save.");
+      return;
+    }
+
     try {
       final tokenRef = FirebaseFirestore.instance.collection('fcm_tokens').doc(token);
       final userTokensRef = FirebaseFirestore.instance
@@ -393,124 +394,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: Provider.of<ThemeProvider>(context, listen: false).loadThemeAsync(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const MaterialApp(
-            home: Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          print("Error loading theme: ${snapshot.error}");
-          return MaterialApp(
-            title: 'SmartPantry',
-            theme: ThemeData.light(),
-            darkTheme: ThemeData.dark(),
-            themeMode: ThemeMode.system,
-            locale: Provider.of<LanguageProvider>(context).locale,
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const SplashScreen(),
-            routes: {
-              '/login': (context) => LoginScreen(setGuestMode: setGuestMode),
-              '/register': (context) => RegisterScreen(setGuestMode: setGuestMode),
-              '/welcomescreen': (context) => WelcomeScreen(setGuestMode: setGuestMode),
-              '/home': (context) => HomeScreen(isGuest: isGuestMode),
-              '/verify-email': (context) => isGuestMode
-                  ? WelcomeScreen(setGuestMode: setGuestMode)
-                  : const VerifyEmailScreen(),
-              '/group-chat': (context) => isGuestMode
-                  ? WelcomeScreen(setGuestMode: setGuestMode)
-                  : FutureBuilder<Group?>(
-                future: _fetchGroup(context),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Scaffold(
-                      body: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-                    return Scaffold(
-                      body: Center(
-                        child: Text(
-                          AppLocalizations.of(context)!.failedToLoadGroup(
-                              snapshot.error?.toString() ?? "Group not found"),
-                        ),
-                      ),
-                    );
-                  }
-                  final group = snapshot.data!;
-                  final isShared = group.sharedWith.length > 1;
-                  return GroupDetailScreen(
-                    group: group,
-                    isGuest: isGuestMode,
-                    isShared: isShared,
-                    arguments: {'selectedIndex': 2},
-                  );
-                },
-              ),
-              '/ai-chat': (context) => isGuestMode
-                  ? WelcomeScreen(setGuestMode: setGuestMode)
-                  : FutureBuilder<Group?>(
-                future: _fetchGroup(context),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Scaffold(
-                      body: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-                    return Scaffold(
-                      body: Center(
-                        child: Text(
-                          AppLocalizations.of(context)!.failedToLoadGroup(
-                              snapshot.error?.toString() ?? "Group not found"),
-                        ),
-                      ),
-                    );
-                  }
-                  final group = snapshot.data!;
-                  final isShared = group.sharedWith.length > 1;
-                  return GroupDetailScreen(
-                    group: group,
-                    isGuest: isGuestMode,
-                    isShared: isShared,
-                    arguments: {'selectedIndex': 2},
-                  );
-                },
-              ),
-              '/theme-settings': (context) => const ThemeSettingsScreen(),
-              '/settings': (context) => SettingsScreen(
-                isGuest: isGuestMode,
-              ),
-              '/notifications': (context) => isGuestMode
-                  ? WelcomeScreen(setGuestMode: setGuestMode)
-                  : NotificationsScreen(
-                groupId: ModalRoute.of(context)!.settings.arguments as String? ??
-                    'default_group_id',
-                isGuest: isGuestMode,
-              ),
-            },
-          );
-        }
-
-        return Consumer<ThemeProvider>(
-          builder: (context, themeProvider, child) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Consumer<LanguageProvider>(
+          builder: (context, languageProvider, child) {
             return MaterialApp(
               title: AppLocalizations.of(context)?.appTitle ?? 'SmartPantry',
               theme: themeProvider.lightTheme,
               darkTheme: themeProvider.darkTheme,
               themeMode: themeProvider.themeMode,
-              locale: Provider.of<LanguageProvider>(context).locale,
+              locale: languageProvider.locale,
               localizationsDelegates: const [
                 AppLocalizations.delegate,
                 GlobalMaterialLocalizations.delegate,
@@ -588,8 +481,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   },
                 ),
                 '/theme-settings': (context) => const ThemeSettingsScreen(),
-                '/settings': (context) => SettingsScreen(
-                  isGuest: isGuestMode,
+                '/settings': (context) => Builder(
+                  builder: (context) {
+                    final theme = Provider.of<ThemeProvider>(context, listen: false);
+                    return SettingsScreen(
+                      isGuest: isGuestMode,
+                      groupColor: theme.primaryColor,
+                    );
+                  },
                 ),
                 '/notifications': (context) => isGuestMode
                     ? WelcomeScreen(setGuestMode: setGuestMode)
@@ -638,20 +537,17 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     if (mounted) {
-      // Ellenőrizzük a bejelentkezési állapotot
       User? user = FirebaseAuth.instance.currentUser;
       final prefs = await SharedPreferences.getInstance();
       bool isGuestMode = prefs.getBool('isGuestMode') ?? false;
 
       if (user != null && !isGuestMode) {
-        // Ha a felhasználó be van jelentkezve, és nem vendég módban van
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => HomeScreen(isGuest: false),
           ),
         );
       } else {
-        // Ha nincs bejelentkezve, vagy vendég módban van
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => WelcomeScreen(
