@@ -71,3 +71,4 @@ node_modules/
 .flutter-plugins-dependencies
 .idea/
 build/
+apikeys.env
