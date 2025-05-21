@@ -4,10 +4,12 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
+// HTML tagek eltávolítása szövegből
 String stripHtml(String htmlText) {
   return htmlText.replaceAll(RegExp(r'<[^>]+>'), '');
 }
 
+// Szöveg fordítása magyarrá a Google Translate API-val
 Future<String> translateToHungarian(BuildContext context, String text, {bool isHtml = false}) async {
   if (text.isEmpty) return text;
 
@@ -27,7 +29,7 @@ Future<String> translateToHungarian(BuildContext context, String text, {bool isH
       uri,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'q': [textToTranslate], // Wrap text in a list as per Google Translate API requirements
+        'q': [textToTranslate], // Szöveg listába csomagolva az API követelménye szerint
         'source': 'en',
         'target': 'hu',
         'format': 'text',
@@ -37,8 +39,8 @@ Future<String> translateToHungarian(BuildContext context, String text, {bool isH
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       String translatedText = data['data']['translations'][0]['translatedText'];
-      translatedText = _handleUnits(translatedText);
-      return isHtml ? '<p>$translatedText</p>' : translatedText;
+      translatedText = _handleUnits(translatedText); // Mértékegységek kezelése
+      return isHtml ? '<p>$translatedText</p>' : translatedText; // HTML formátumú szöveg esetén p tag hozzáadása
     } else {
       throw Exception(AppLocalizations.of(context)!.failedToTranslateText(response.statusCode.toString(), response.body));
     }
@@ -47,6 +49,7 @@ Future<String> translateToHungarian(BuildContext context, String text, {bool isH
   }
 }
 
+// Szöveglista fordítása magyarrá
 Future<List<String>> translateListToHungarian(BuildContext context, List<String> texts) async {
   if (texts.isEmpty) return texts;
 
@@ -82,6 +85,7 @@ Future<List<String>> translateListToHungarian(BuildContext context, List<String>
   }
 }
 
+// Mértékegységek konvertálása és magyarosítása
 String _handleUnits(String text) {
   return text
       .replaceAll('cup', 'csésze')

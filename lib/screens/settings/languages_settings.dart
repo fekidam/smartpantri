@@ -4,8 +4,9 @@ import 'package:smartpantri/generated/l10n.dart';
 import 'package:smartpantri/Providers/language_provider.dart';
 import '../../Providers/theme_provider.dart';
 
+// Nyelv- és régióbeállítások képernyője
 class LanguageRegionSettingsScreen extends StatelessWidget {
-  final Color groupColor; // Hozzáadva a groupColor paraméter
+  final Color groupColor; // Csoport színe
 
   const LanguageRegionSettingsScreen({
     super.key,
@@ -14,27 +15,31 @@ class LanguageRegionSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final languageProvider = Provider.of<LanguageProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context); // Nyelvszolgáltató provider
+    final themeProvider = Provider.of<ThemeProvider>(context); // Témaszolgáltató provider
+    // Határozza meg a használni kívánt színt a globális téma vagy csoportszín alapján
     final effectiveColor = themeProvider.useGlobalTheme ? themeProvider.primaryColor : groupColor;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.languageAndRegion),
+        title: Text(AppLocalizations.of(context)!.languageAndRegion), // AppBar cím
         backgroundColor: effectiveColor, // effectiveColor használata
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
+        // Nyelv- és régióbeállítások listázása
         child: ListView(
           children: [
             ListTile(
-              title: Text(AppLocalizations.of(context)!.selectLanguage),
+              title: Text(AppLocalizations.of(context)!.selectLanguage), // Nyelv kiválasztása cím
               subtitle: Text(
+                // Aktuális nyelv megjelenítése
                 languageProvider.locale.languageCode == 'hu'
                     ? AppLocalizations.of(context)!.hungarian
                     : AppLocalizations.of(context)!.english,
               ),
               onTap: () {
+                // Nyelv kiválasztó dialógus megjelenítése
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -43,17 +48,17 @@ class LanguageRegionSettingsScreen extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ListTile(
-                          title: Text(AppLocalizations.of(context)!.english),
+                          title: Text(AppLocalizations.of(context)!.english), // Angol nyelv kiválasztása
                           onTap: () {
-                            languageProvider.setLocale(const Locale('en'));
-                            Navigator.pop(context);
+                            languageProvider.setLocale(const Locale('en')); // Angol nyelv beállítása
+                            Navigator.pop(context); // Dialógus bezárása
                           },
                         ),
                         ListTile(
-                          title: Text(AppLocalizations.of(context)!.hungarian),
+                          title: Text(AppLocalizations.of(context)!.hungarian), // Magyar nyelv kiválasztása
                           onTap: () {
-                            languageProvider.setLocale(const Locale('hu'));
-                            Navigator.pop(context);
+                            languageProvider.setLocale(const Locale('hu')); // Magyar nyelv beállítása
+                            Navigator.pop(context); // Dialógus bezárása
                           },
                         ),
                       ],
@@ -63,13 +68,15 @@ class LanguageRegionSettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              title: Text(AppLocalizations.of(context)!.selectRegion),
+              title: Text(AppLocalizations.of(context)!.selectRegion), // Régió kiválasztása cím
               subtitle: Text(
+                // Aktuális régió megjelenítése
                 languageProvider.locale.languageCode == 'hu'
                     ? AppLocalizations.of(context)!.hungary
                     : AppLocalizations.of(context)!.usa,
               ),
               onTap: () {
+                // Régió kiválasztó dialógus megjelenítése
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -78,15 +85,15 @@ class LanguageRegionSettingsScreen extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ListTile(
-                          title: Text(AppLocalizations.of(context)!.usa),
+                          title: Text(AppLocalizations.of(context)!.usa), // USA régió
                           onTap: () {
-                            Navigator.pop(context);
+                            Navigator.pop(context); // Dialógus bezárása
                           },
                         ),
                         ListTile(
-                          title: Text(AppLocalizations.of(context)!.hungary),
+                          title: Text(AppLocalizations.of(context)!.hungary), // Magyarország régió
                           onTap: () {
-                            Navigator.pop(context);
+                            Navigator.pop(context); // Dialógus bezárása
                           },
                         ),
                       ],

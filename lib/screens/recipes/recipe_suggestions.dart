@@ -9,10 +9,11 @@ import '../../services/translation_service.dart';
 import 'allergy_selection.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
+// Receptjavaslatokat megjelenítő képernyő
 class RecipeSuggestionsScreen extends StatefulWidget {
-  final bool fromGroupScreen;
-  final bool isGuest;
-  final Color groupColor;
+  final bool fromGroupScreen; // Csoport képernyőről érkezett-e
+  final bool isGuest; // Vendég mód állapotának jelzése
+  final Color groupColor; // Csoport színe
 
   const RecipeSuggestionsScreen({
     super.key,
@@ -26,16 +27,17 @@ class RecipeSuggestionsScreen extends StatefulWidget {
 }
 
 class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
-  List<Map<String, dynamic>> recipes = [];
-  List<String> selectedAllergies = [];
-  bool isLoading = false;
+  List<Map<String, dynamic>> recipes = []; // Receptlista
+  List<String> selectedAllergies = []; // Kiválasztott allergiák
+  bool isLoading = false; // Betöltési állapot
 
   @override
   void initState() {
     super.initState();
-    _fetchRecipes();
+    _fetchRecipes(); // Receptlista betöltése inicializáláskor
   }
 
+  // Receptlista lekérése a Spoonacular API-ból
   Future<void> _fetchRecipes() async {
     setState(() {
       isLoading = true;
@@ -43,8 +45,8 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
 
     try {
       final queryParameters = {
-        'number': '50',
-        'intolerances': selectedAllergies.join(','),
+        'number': '50', // Maximum 50 recept lekérése
+        'intolerances': selectedAllergies.join(','), // Allergia szűrő
         'addRecipeInformation': 'true',
         'apiKey': dotenv.env['SPOONACULAR_API_KEY'],
       };
@@ -55,7 +57,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
         queryParameters,
       );
 
-      final response = await http.get(uri);
+      final response = await http.get(uri); // API hívás
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -65,6 +67,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
         final locale = Localizations.localeOf(context);
         final isHungarian = locale.languageCode == 'hu';
 
+        // Receptcímek fordítása magyarra, ha szükséges
         if (isHungarian) {
           for (var recipe in fetchedRecipes) {
             recipe['title'] = await translateToHungarian(
@@ -82,6 +85,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     } catch (error) {
       final theme = Provider.of<ThemeProvider>(context, listen: false);
       final fontSizeScale = theme.fontSizeScale;
+      // Hibaüzenet megjelenítése snackbar formájában
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -97,6 +101,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     }
   }
 
+  // Allergia kiválasztó képernyő megnyitása
   Future<void> _openAllergySelection() async {
     final result = await Navigator.push<List<String>>(
       context,
@@ -107,7 +112,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
             setState(() {
               selectedAllergies = updated;
             });
-            _fetchRecipes();
+            _fetchRecipes(); // Új receptek betöltése allergia változás után
           },
         ),
       ),
@@ -120,12 +125,14 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     }
   }
 
+  // Recept részleteinek megtekintése
   void _viewRecipeDetails(int recipeId) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Provider.of<ThemeProvider>(context, listen: false);
     final fontSizeScale = theme.fontSizeScale;
 
     if (widget.isGuest) {
+      // Hibaüzenet vendég mód esetén
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -135,6 +142,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
         ),
       );
     } else {
+      // Navigálás a recept részletei képernyőre
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -147,6 +155,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     }
   }
 
+  // Egy recept kártyájának megjelenítése
   Widget _buildRecipeCard(Map<String, dynamic> recipe) {
     final theme = Provider.of<ThemeProvider>(context, listen: false);
     final fontSizeScale = theme.fontSizeScale;
@@ -234,6 +243,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     final fontSizeScale = theme.fontSizeScale;
     final gradientOpacity = theme.gradientOpacity;
     final iconStyle = theme.iconStyle;
+    // Határozza meg a használni kívánt színt a csoport vagy globális téma alapján
     final effectiveColor = widget.fromGroupScreen
         ? widget.groupColor
         : theme.primaryColor;
@@ -268,7 +278,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
                     : Icons.filter_list_outlined,
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
-              onPressed: _openAllergySelection,
+              onPressed: _openAllergySelection, // Allergia szűrő megnyitása
             ),
         ],
       ),
@@ -304,7 +314,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
             childAspectRatio: 0.65,
           ),
           itemCount: recipes.length,
-          itemBuilder: (context, index) => _buildRecipeCard(recipes[index]),
+          itemBuilder: (context, index) => _buildRecipeCard(recipes[index]), // Receptkártyák megjelenítése
         ),
       ),
     );

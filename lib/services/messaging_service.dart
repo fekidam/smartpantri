@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+// Üzenetküldési (FCM) szolgáltatás osztály
 class MessagingService {
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance; // FCM példány
 
+  // FCM inicializálása és jogosultságok kérése
   Future<void> initialize() async {
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
@@ -21,22 +23,26 @@ class MessagingService {
       return;
     }
 
-    await _saveTokenToFirestore();
+    await _saveTokenToFirestore(); // FCM token mentése
 
+    // Token frissítése esetén új token mentése
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       print("FCM token refreshed: $newToken");
       await _saveTokenToFirestore(newToken: newToken);
     });
 
+    // Beérkező üzenetek figyelése
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Received a message: ${message.notification?.title}');
     });
 
+    // Értesítésre kattintás figyelése
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('Notification clicked!');
     });
   }
 
+  // FCM token mentése Firestore-ba
   Future<void> _saveTokenToFirestore({String? newToken}) async {
     try {
       final user = FirebaseAuth.instance.currentUser;

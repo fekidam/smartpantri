@@ -135,7 +135,6 @@
   "iAmGoingShoppingToday": "Ma bevásárolni megyek.",
   "whatsMissingFromShoppingList": "Mi hiányzik a bevásárlólistáról?",
   "whosGoingShoppingToday": "Ki megy ma bevásárolni?",
-  "sender": "Feladó: {sender}",
   "noMessage": "Nincs üzenet",
   "noTimestampAvailable": "Nincs elérhető időbélyeg",
   "settings": "Beállítások",
@@ -279,6 +278,15 @@
   "alreadyHaveAccountLogin": "Már van fiókod? Jelentkezz be",
   "registrationErrorUnexpected": "Váratlan regisztrációs hiba.",
   "tooManyRequests": "Túl sok kérés.",
+  "userAlreadyInGroup": "A felhasználó már tagja a csoportnak.",
+  "noItemsInYourGroups": "Nincs termék az összesített listádban.",
+  "guestCartLimitReached": "Elérted a vendég módban engedélyezett {limit} termék maximális limitjét.",
+  "@guestCartLimitReached": {
+    "description": "Üzenet, amikor a vendég felhasználó eléri a kosárban lévő termékek limitjét",
+    "placeholders": {
+      "limit": {}
+    }
+  },
   "outOfScopeResponse": "Sajnos erre a kérdésre nem tudok válaszolni, csak az alkalmazás használatával és receptekkel kapcsolatban tudok segíteni.",
   "gradientOpacity": "Gradiens átlátszóság",
   "iconStyle": "Ikonstílus",
@@ -377,14 +385,6 @@
     "description": "Hibaüzenet az értesítések betöltése sikertelenségére",
     "placeholders": {
       "error": {
-        "type": "String"
-      }
-    }
-  },
-  "@sender": {
-    "description": "Címke az értesítés feladójához",
-    "placeholders": {
-      "sender": {
         "type": "String"
       }
     }
@@ -619,7 +619,41 @@
       }
     }
   },
+  "addToShoppingList": "Hozzáadás a Bevásárlólistához",
+  "@addToShoppingList": {
+    "description": "Tipp a gombhoz, amely egy elemet ad a bevásárlólistához."
+  },
+  "itemAddedToShoppingList": "Elem hozzáadva a bevásárlólistához: {itemName}",
+  "@itemAddedToShoppingList": {
+    "description": "Üzenet, amely akkor jelenik meg, amikor egy elem sikeresen hozzá lett adva a bevásárlólistához.",
+    "placeholders": {
+      "itemName": {
+        "type": "String",
+        "description": "Az elem neve, amelyet a bevásárlólistához adnak."
+      }
+    }
+  },
   "continueToApp": "Folytatás az alkalmazásban",
   "emailVerifiedSuccessfully": "Email sikeresen megerősítve!",
-  "offlineModeMessage": "Offline módban vagy. Előfordulhat, hogy néhány funkció nem megfelelő."
+  "offlineModeMessage": "Offline módban vagy. Előfordulhat, hogy néhány funkció nem megfelelő.",
+  "sender": "{senderName}",
+  "@sender": {
+    "description": "Label for the notification sender",
+    "placeholders": {
+      "senderName": {
+        "type": "String",
+        "description": "A küldő neve vagy e-mail címe"
+      }
+    }
+  },
+  "fromGroup": "{groupName}-ból",
+  "@fromGroup": {
+    "description": "Label indicating the group the notification is from",
+    "placeholders": {
+      "groupName": {
+        "type": "String",
+        "description": "A csoport neve"
+      }
+    }
+  }
 }

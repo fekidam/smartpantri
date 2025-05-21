@@ -135,7 +135,6 @@
   "iAmGoingShoppingToday": "I am going shopping today.",
   "whatsMissingFromShoppingList": "What's missing from the shopping list?",
   "whosGoingShoppingToday": "Who's going shopping today?",
-  "sender": "Sender: {sender}",
   "noMessage": "No message",
   "noTimestampAvailable": "No timestamp available",
   "settings": "Settings",
@@ -269,6 +268,13 @@
   "errorNavigatingToGroupChat": "Error navigating to group chat: {error}",
   "noMessagesYet": "No messages yet.",
   "welcomeToYourGroups": "Welcome to Your Groups!",
+  "guestCartLimitReached": "You have reached the maximum limit of {limit} items in guest mode.",
+  "@guestCartLimitReached": {
+    "description": "Message shown when a guest user reaches the cart item limit",
+    "placeholders": {
+      "limit": {}
+    }
+  },
   "yourGroupsInfo": "This screen helps you manage all your groups. If you shop from multiple groups, their items will be consolidated here, so you don’t need to check each group’s shopping list individually. You just have to push the Consolidated list button!",
   "gotIt": "Got It",
   "welcomeToSmartPantri": "Welcome to SmartPantri!",
@@ -278,6 +284,8 @@
   "aggregatedListInfoMessage": "In this list, you can mark items as purchased by ticking the checkbox. If you delete an item with the checkbox ticked, it will be added to your Expense Tracker and What's in the Fridge sections. If unticked, the item will simply be removed.",
   "alreadyHaveAccountLogin": "Already have an account? Log in",
   "tooManyRequests": "Too Many Requests.",
+  "userAlreadyInGroup": "User is already in the group!",
+  "noItemsInYourGroups": "No items in your consolidated list.",
   "registrationErrorUnexpected": "Unexpected registration error.",
   "outOfScopeResponse": "I cannot answer this question. I can only assist with application usage and recipes.",
   "iconStyle": "Icon style",
@@ -377,14 +385,6 @@
     "description": "Error message for notification loading failure",
     "placeholders": {
       "error": {
-        "type": "String"
-      }
-    }
-  },
-  "@sender": {
-    "description": "Label for the notification sender",
-    "placeholders": {
-      "sender": {
         "type": "String"
       }
     }
@@ -619,7 +619,41 @@
       }
     }
   },
+  "addToShoppingList": "Add to Shopping List",
+  "@addToShoppingList": {
+    "description": "Tooltip for the button to add an item to the shopping list."
+  },
+  "itemAddedToShoppingList": "Item added to shopping list: {itemName}",
+  "@itemAddedToShoppingList": {
+    "description": "Message shown when an item is successfully added to the shopping list.",
+    "placeholders": {
+      "itemName": {
+        "type": "String",
+        "description": "The name of the item being added to the shopping list."
+      }
+    }
+  },
   "continueToApp": "Continue to App",
   "emailVerifiedSuccessfully": "Email verified successfully!",
-  "offlineModeMessage": "You are in offline mode. Some features may be unavailable."
+  "offlineModeMessage": "You are in offline mode. Some features may be unavailable.",
+  "sender": "{senderName}",
+  "@sender": {
+    "description": "Label for the notification sender",
+    "placeholders": {
+      "senderName": {
+        "type": "String",
+        "description": "The name or email of the sender"
+      }
+    }
+  },
+  "fromGroup": "from {groupName}",
+  "@fromGroup": {
+    "description": "Label indicating the group the notification is from",
+    "placeholders": {
+      "groupName": {
+        "type": "String",
+        "description": "The name of the group"
+      }
+    }
+  }
 }

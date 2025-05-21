@@ -9,8 +9,9 @@ import 'package:image_cropper/image_cropper.dart';
 import '../../Providers/theme_provider.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
+// Profilbeállítások képernyője
 class ProfileSettingsScreen extends StatefulWidget {
-  final Color groupColor; // Hozzáadva a groupColor paraméter
+  final Color groupColor; // Csoport színe
 
   const ProfileSettingsScreen({
     super.key,
@@ -22,24 +23,25 @@ class ProfileSettingsScreen extends StatefulWidget {
 }
 
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
-  final TextEditingController _firstName = TextEditingController();
-  final TextEditingController _lastName = TextEditingController();
-  final TextEditingController _email = TextEditingController();
-  final TextEditingController _currentPwd = TextEditingController();
-  final TextEditingController _newPwd = TextEditingController();
+  final TextEditingController _firstName = TextEditingController(); // Keresztnév beviteli mező
+  final TextEditingController _lastName = TextEditingController(); // Vezetéknév beviteli mező
+  final TextEditingController _email = TextEditingController(); // Email beviteli mező
+  final TextEditingController _currentPwd = TextEditingController(); // Jelenlegi jelszó beviteli mező
+  final TextEditingController _newPwd = TextEditingController(); // Új jelszó beviteli mező
 
-  String? _photoUrl;
-  bool _loading = false;
-  bool _isGoogle = false;
-  bool _showCurrent = false;
-  bool _showNew = false;
+  String? _photoUrl; // Profilképek URL-je
+  bool _loading = false; // Betöltési állapot
+  bool _isGoogle = false; // Google fiók ellenőrzése
+  bool _showCurrent = false; // Jelenlegi jelszó láthatósága
+  bool _showNew = false; // Új jelszó láthatósága
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
+    _loadUser(); // Felhasználói adatok betöltése
   }
 
+  // Felhasználói adatok betöltése Firestore-ból
   Future<void> _loadUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -61,6 +63,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     setState(() => _loading = false);
   }
 
+  // Profil mentése
   Future<void> _saveProfile() async {
     final user = FirebaseAuth.instance.currentUser!;
     setState(() => _loading = true);
@@ -100,6 +103,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
+  // Profilkép kiválasztása és feltöltése
   Future<void> _pickPhoto() async {
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
@@ -157,7 +161,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(context);
+    final theme = Provider.of<ThemeProvider>(context); // Témaszolgáltató provider
+    // Határozza meg a használni kívánt színt a globális téma vagy csoportszín alapján
     final effectiveColor = theme.useGlobalTheme ? theme.primaryColor : widget.groupColor;
     if (_loading) {
       return const Scaffold(
@@ -200,7 +205,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           children: [
             Center(
               child: GestureDetector(
-                onTap: _pickPhoto,
+                onTap: _pickPhoto, // Profilkép kiválasztása
                 child: Stack(
                   alignment: Alignment.bottomRight,
                   children: [
@@ -212,12 +217,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       backgroundColor: Theme.of(context).unselectedWidgetColor,
                       child: _photoUrl?.isNotEmpty == true
                           ? null
-                          : Icon(Icons.person, size: 50, color: Theme.of(context).colorScheme.onSurface),
+                          : Icon(Icons.person,
+                          size: 50, color: Theme.of(context).colorScheme.onSurface),
                     ),
                     CircleAvatar(
                       radius: 15,
                       backgroundColor: widget.groupColor, // groupColor használata
-                      child: Icon(Icons.camera_alt, size: 20, color: Theme.of(context).colorScheme.onPrimary),
+                      child: Icon(Icons.camera_alt,
+                          size: 20, color: Theme.of(context).colorScheme.onPrimary),
                     ),
                   ],
                 ),
@@ -263,13 +270,16 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(_email.text, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              child: Text(_email.text,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
             ),
 
             if (_isGoogle) ...[
               const SizedBox(height: 8),
               Text(AppLocalizations.of(context)!.managedByGoogle,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54), fontStyle: FontStyle.italic)),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
+                      fontStyle: FontStyle.italic)),
             ],
 
             if (!_isGoogle) ...[
@@ -319,8 +329,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             const SizedBox(height: 24),
 
             ElevatedButton(
-              onPressed: _saveProfile,
-              child: Text(AppLocalizations.of(context)!.save, style: TextStyle(color: Theme.of(context).colorScheme.onPrimary)),
+              onPressed: _saveProfile, // Profil mentése
+              child: Text(AppLocalizations.of(context)!.save,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onPrimary)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: effectiveColor, // effectiveColor használata
                 minimumSize: const Size.fromHeight(48),

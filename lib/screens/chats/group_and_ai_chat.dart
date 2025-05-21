@@ -37,9 +37,11 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
   @override
   void initState() {
     super.initState();
+    // Ha nincs megosztott csoport, automatikusan AI módra váltunk
     if (!widget.isShared) _aiMode = true;
   }
 
+  // Üzenetküldés (AI vagy csoport szerint)
   Future<void> _send() async {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty || _sending) return;
@@ -51,6 +53,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
     } else {
       await _sendToGroup(text);
     }
+
     setState(() => _sending = false);
     Future.delayed(const Duration(milliseconds: 100), () {
       _scrollCtrl.animateTo(
@@ -61,6 +64,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
     });
   }
 
+  // Üzenet mentése a csoportos chatbe
   Future<void> _sendToGroup(String text) async {
     await _fs
         .collection('chats')
@@ -73,6 +77,7 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
     });
   }
 
+  // Üzenet küldése az OpenAI API-nak
   Future<void> _sendToAI(String prompt) async {
     final uid = _auth.currentUser!.uid;
     final base = _fs.collection('chats').doc('ai-chat').collection(uid);
@@ -86,12 +91,15 @@ class _GroupAndAIChatScreenState extends State<GroupAndAIChatScreen> {
     final key = dotenv.env['OPENAI_API_KEY'] ?? '';
     if (key.isEmpty) return;
 
-    final system = RegExp(r'^[a-zA-Z0-9\s.,!?]*$').hasMatch(prompt)
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final isHu = localeCode == 'hu';
+
+    final system = isHu
         ? '''
-You are a helpful assistant for the SmartPantri app. You can only respond to questions related to recipes and the SmartPantry app itself. For any other topics, reply with: "I can only assist with questions related to recipes and the SmartPantri app."
+Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Kérhetsz tőlem recepteket (pl. "Adj egy receptet kenyérhez" vagy "Hogyan süssek sütit"), és válaszolok lépésről lépésre magyarul. Csak a receptekkel és a SmartPantri alkalmazással kapcsolatos kérdésekre válaszolhatsz. Minden egyéb témában ezt válaszold: "Csak a receptekkel és a SmartPantri alkalmazással kapcsolatos kérdésekre válaszolhatok."
 '''
         : '''
-Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a receptekkel és a SmartPantry alkalmazással kapcsolatos kérdésekre válaszolhatsz. Minden egyéb témában ezt válaszold: "Csak a receptekkel és a SmartPantri alkalmazással kapcsolatos kérdésekre válaszolhatok."
+You are a helpful assistant for the SmartPantri app. You can provide recipes (e.g., "Give me a recipe for bread" or "How do I bake a cake") and respond step-by-step in English. You can only respond to questions related to recipes and the SmartPantri app itself. For any other topics, reply with: "I can only assist with questions related to recipes and the SmartPantri app."
 ''';
 
     final resp = await http.post(
@@ -106,11 +114,16 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
           {'role': 'system', 'content': system},
           {'role': 'user', 'content': prompt},
         ],
+        'temperature': 0.7,
       }),
     );
+
     final ai = resp.statusCode == 200
         ? jsonDecode(utf8.decode(resp.bodyBytes))['choices'][0]['message']['content'] as String
-        : 'AI error ${resp.statusCode}';
+        : AppLocalizations.of(context)!.aiResponseError(
+      resp.statusCode.toString(),
+      resp.body,
+    );
 
     await base.add({
       'sender': 'AI',
@@ -119,9 +132,10 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
     });
   }
 
+  // Egyetlen üzenet megjelenítése
   Widget _buildMsg(Map<String, dynamic> d) {
     final isAI = _aiMode;
-    final sender = d[isAI ? 'sender' : 'sender'] as String? ?? '';
+    final sender = d['sender'] as String? ?? '';
     final text = d[isAI ? 'content' : 'text'] as String? ?? '';
     final ts = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
     final time = DateFormat('HH:mm').format(ts);
@@ -133,7 +147,9 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isMe ? Theme.of(context).primaryColor : Theme.of(context).cardColor,
+          color: isMe
+              ? Theme.of(context).primaryColor.withOpacity(0.7)
+              : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -141,10 +157,24 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
           isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             if (!_aiMode)
-              Text(sender, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), fontSize: 12)),
-            Text(text, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              Text(sender,
+                  style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
+                      fontSize: 12)),
+            Text(text,
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface)),
             if (!_aiMode)
-              Text(time, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), fontSize: 10)),
+              Text(time,
+                  style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
+                      fontSize: 10)),
           ],
         ),
       ),
@@ -155,7 +185,8 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
   Widget build(BuildContext context) {
     final theme = Provider.of<ThemeProvider>(context);
     final l10n = AppLocalizations.of(context)!;
-    final effectiveColor = theme.useGlobalTheme ? theme.primaryColor : widget.groupColor;
+    final effectiveColor =
+    theme.useGlobalTheme ? theme.primaryColor : widget.groupColor;
     final fontSizeScale = theme.fontSizeScale;
     final gradientOpacity = theme.gradientOpacity;
     final iconStyle = theme.iconStyle;
@@ -183,8 +214,13 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
           if (widget.isShared)
             IconButton(
               icon: Icon(
-                _aiMode ? (iconStyle == 'filled' ? Icons.smart_toy : Icons.smart_toy_outlined)
-                    : (iconStyle == 'filled' ? Icons.chat : Icons.chat_outlined),
+                _aiMode
+                    ? (iconStyle == 'filled'
+                    ? Icons.smart_toy
+                    : Icons.smart_toy_outlined)
+                    : (iconStyle == 'filled'
+                    ? Icons.chat
+                    : Icons.chat_outlined),
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
               onPressed: () => setState(() => _aiMode = !_aiMode),
@@ -197,7 +233,9 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
           gradient: LinearGradient(
             colors: [
               effectiveColor.withOpacity(gradientOpacity),
-              Theme.of(context).brightness == Brightness.dark ? Colors.grey[900]! : Colors.grey[200]!,
+              Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[900]!
+                  : Colors.grey[200]!,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -208,23 +246,35 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: _aiMode
-                    ? _fs.collection('chats').doc('ai-chat').collection(_auth.currentUser!.uid)
-                    .orderBy('timestamp').snapshots()
-                    : _fs.collection('chats').doc(widget.groupId).collection('messages')
-                    .orderBy('timestamp').snapshots(),
+                    ? _fs
+                    .collection('chats')
+                    .doc('ai-chat')
+                    .collection(_auth.currentUser!.uid)
+                    .orderBy('timestamp')
+                    .snapshots()
+                    : _fs
+                    .collection('chats')
+                    .doc(widget.groupId)
+                    .collection('messages')
+                    .orderBy('timestamp')
+                    .snapshots(),
                 builder: (ctx, snap) {
-                  if (!snap.hasData) return Center(child: CircularProgressIndicator(color: effectiveColor));
+                  if (!snap.hasData)
+                    return Center(
+                        child: CircularProgressIndicator(color: effectiveColor));
                   final docs = snap.data!.docs;
                   return ListView.builder(
                     controller: _scrollCtrl,
                     itemCount: docs.length,
-                    itemBuilder: (_, i) => _buildMsg(docs[i].data()! as Map<String, dynamic>),
+                    itemBuilder: (_, i) =>
+                        _buildMsg(docs[i].data()! as Map<String, dynamic>),
                   );
                 },
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               color: Theme.of(context).cardColor,
               child: Row(
                 children: [
@@ -241,7 +291,10 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
                           hintText: l10n.typeAMessage,
                           border: InputBorder.none,
                           hintStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.7),
                             fontSize: 16 * fontSizeScale,
                           ),
                         ),
@@ -258,7 +311,9 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
                     backgroundColor: effectiveColor,
                     child: IconButton(
                       icon: Icon(
-                        iconStyle == 'filled' ? Icons.send : Icons.send_outlined,
+                        iconStyle == 'filled'
+                            ? Icons.send
+                            : Icons.send_outlined,
                         color: Theme.of(context).colorScheme.onPrimary,
                       ),
                       onPressed: _sending ? null : _send,

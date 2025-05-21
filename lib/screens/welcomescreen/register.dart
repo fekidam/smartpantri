@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:smartpantri/services/auth_service.dart';
-
 import '../../generated/l10n.dart';
 
+// Regisztrációs képernyő új felhasználók számára
 class RegisterScreen extends StatefulWidget {
   final Function(bool)? setGuestMode;
   const RegisterScreen({Key? key, this.setGuestMode}) : super(key: key);
@@ -13,6 +13,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  // Űrlaphoz szükséges változók
   final _formKey = GlobalKey<FormState>();
   final _firstNameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
@@ -21,14 +22,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPassCtrl = TextEditingController();
   DateTime? _birthDate;
   bool _loading = false;
+  bool _showPassword = false; // Új állapotváltozó a jelszó megjelenítéséhez
+  bool _showConfirmPassword = false; // Új állapotváltozó a jelszó megerősítéséhez
   final AuthService _authService = AuthService();
 
+  // Szín sötétítése a gombokhoz
   Color _darken(Color color, [double amount = .2]) {
     final hsl = HSLColor.fromColor(color);
     final l = (hsl.lightness - amount).clamp(0.0, 1.0);
     return hsl.withLightness(l).toColor();
   }
 
+  // Gomb komponens létrehozása
   Widget _buildActionButton({
     required String text,
     required VoidCallback? onPressed,
@@ -48,6 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Születési dátum kiválasztása
   Future<void> _selectDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -61,9 +67,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  // Regisztráció logikája
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _loading = true);
+
     final result = await _authService.register(
       context: context,
       firstName: _firstNameCtrl.text,
@@ -73,7 +82,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       confirmPassword: _confirmPassCtrl.text,
       birthDate: _birthDate,
     );
+
     setState(() => _loading = false);
+
     if (result['success']) {
       widget.setGuestMode?.call(false);
       Navigator.pushReplacementNamed(context, '/verify-email');
@@ -97,111 +108,112 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 40),
+                // Cím
                 Text(
                   AppLocalizations.of(context)!.register,
-                  style: theme.textTheme.headlineSmall!
-                      .copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.headlineSmall!.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 32),
 
-                // First Name
+                // Keresztnév
                 TextFormField(
                   controller: _firstNameCtrl,
-                  style: theme.textTheme.bodyLarge,
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)!.firstName,
                     prefixIcon: Icon(Icons.person_outline, color: theme.hintColor),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  validator: (v) => v == null || v.isEmpty
-                      ? AppLocalizations.of(context)!.firstNameRequired
-                      : null,
+                  validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.firstNameRequired : null,
                 ),
                 const SizedBox(height: 16),
 
-                // Last Name
+                // Vezetéknév
                 TextFormField(
                   controller: _lastNameCtrl,
-                  style: theme.textTheme.bodyLarge,
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)!.lastName,
                     prefixIcon: Icon(Icons.person_outline, color: theme.hintColor),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  validator: (v) => v == null || v.isEmpty
-                      ? AppLocalizations.of(context)!.lastNameRequired
-                      : null,
+                  validator: (v) => v == null || v.isEmpty ? AppLocalizations.of(context)!.lastNameRequired : null,
                 ),
                 const SizedBox(height: 16),
 
                 // Email
                 TextFormField(
                   controller: _emailCtrl,
-                  style: theme.textTheme.bodyLarge,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)!.email,
                     prefixIcon: Icon(Icons.email_outlined, color: theme.hintColor),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.isEmpty) {
-                      return AppLocalizations.of(context)!.emailRequired;
-                    }
+                    if (v == null || v.isEmpty) return AppLocalizations.of(context)!.emailRequired;
                     final regex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-                    if (!regex.hasMatch(v)) {
-                      return AppLocalizations.of(context)!.invalidEmail;
-                    }
+                    if (!regex.hasMatch(v)) return AppLocalizations.of(context)!.invalidEmail;
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Password
+                // Jelszó
                 TextFormField(
                   controller: _passwordCtrl,
-                  obscureText: true,
-                  style: theme.textTheme.bodyLarge,
+                  obscureText: !_showPassword, // Jelszó megjelenítése/elrejtése
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)!.password,
                     prefixIcon: Icon(Icons.lock_outline, color: theme.hintColor),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _showPassword ? Icons.visibility : Icons.visibility_off,
+                        color: theme.hintColor,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _showPassword = !_showPassword;
+                        });
+                      },
+                    ),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) {
-                      return AppLocalizations.of(context)!.passwordRequired;
-                    }
-                    if (v.length < 6) {
-                      return AppLocalizations.of(context)!.passwordTooShort;
-                    }
+                    if (v == null || v.isEmpty) return AppLocalizations.of(context)!.passwordRequired;
+                    if (v.length < 6) return AppLocalizations.of(context)!.passwordTooShort;
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Confirm Password
+                // Jelszó megerősítése
                 TextFormField(
                   controller: _confirmPassCtrl,
-                  obscureText: true,
-                  style: theme.textTheme.bodyLarge,
+                  obscureText: !_showConfirmPassword, // Jelszó megerősítése megjelenítése/elrejtése
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)!.confirmPassword,
                     prefixIcon: Icon(Icons.lock_outline, color: theme.hintColor),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _showConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                        color: theme.hintColor,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _showConfirmPassword = !_showConfirmPassword;
+                        });
+                      },
+                    ),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) {
-                      return AppLocalizations.of(context)!.confirmPasswordRequired;
-                    }
-                    if (v != _passwordCtrl.text) {
-                      return AppLocalizations.of(context)!.passwordsDoNotMatch;
-                    }
+                    if (v == null || v.isEmpty) return AppLocalizations.of(context)!.confirmPasswordRequired;
+                    if (v != _passwordCtrl.text) return AppLocalizations.of(context)!.passwordsDoNotMatch;
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Birth Date
+                // Születési dátum kiválasztása
                 GestureDetector(
                   onTap: _selectDate,
                   child: InputDecorator(
@@ -220,14 +232,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Register Button
+                // Regisztráció gomb
                 _buildActionButton(
                   text: AppLocalizations.of(context)!.register,
                   onPressed: _loading ? null : _register,
                 ),
                 const SizedBox(height: 16),
 
-                // Already have account?
+                // Átirányítás bejelentkezésre
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/login'),
                   child: Text(

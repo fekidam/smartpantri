@@ -1,23 +1,21 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../Providers/theme_provider.dart';
 import '../welcomescreen/login.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
+// Adatvédelem és biztonsági beállítások képernyője
 class PrivacySecuritySettingsScreen extends StatefulWidget {
-  final Color groupColor; // Hozzáadva a groupColor paraméter
+  final Color groupColor;
 
   const PrivacySecuritySettingsScreen({
     super.key,
-    required this.groupColor, // Kötelező paraméter
+    required this.groupColor,
   });
 
   @override
@@ -25,30 +23,16 @@ class PrivacySecuritySettingsScreen extends StatefulWidget {
 }
 
 class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsScreen> {
-  bool _twoFA = false;
-  DateTime? _lastCodeTime;
-  final _auth = FirebaseAuth.instance;
-  final _passwordController = TextEditingController();
+  final _auth = FirebaseAuth.instance; // Firebase autentikációs példány
+  final _passwordController = TextEditingController(); // Jelszó beviteli mező
 
   @override
   void initState() {
     super.initState();
-    _loadTwoFA();
-    _saveDeviceInfo();
+    _saveDeviceInfo(); // Eszközinformációk mentése
   }
 
-  Future<void> _loadTwoFA() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _twoFA = prefs.getBool('twoFactorEnabled') ?? false;
-    });
-  }
-
-  Future<void> _saveTwoFA(bool v) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('twoFactorEnabled', v);
-  }
-
+  // Eszközinformációk mentése Firestore-ba
   Future<void> _saveDeviceInfo() async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -77,114 +61,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
     });
   }
 
-  Future<void> _toggle2FA(bool enable) async {
-    final user = _auth.currentUser;
-    final l10n = AppLocalizations.of(context)!;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pleaseLogInToUse2FA)),
-      );
-      return;
-    }
-    final now = DateTime.now();
-    if (enable && _lastCodeTime != null && now.difference(_lastCodeTime!).inSeconds < 60) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.wait60SecondsForNewCode)),
-      );
-      return;
-    }
-
-    if (enable) {
-      try {
-        final sendUrl = 'https://us-central1-smartpantri-dc717.cloudfunctions.net/sendMfaCode';
-        final sendResp = await http.post(
-          Uri.parse(sendUrl),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'data': {'email': user.email}}),
-        );
-        _lastCodeTime = now;
-        if (sendResp.statusCode == 200) {
-          final code = await _showCodeDialog(email: user.email!);
-          if (code == null) return;
-          final verifyResp = await http.post(
-            Uri.parse('https://us-central1-smartpantri-dc717.cloudfunctions.net/verifyMfaCode'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'data': {'code': code}}),
-          );
-          final ok = verifyResp.statusCode == 200 && jsonDecode(verifyResp.body)['result']['success'];
-          setState(() => _twoFA = ok);
-          await _saveTwoFA(ok);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(ok ? l10n.twoFAEnabled : l10n.invalidVerificationCode)),
-          );
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorDuring2FASetup(e.toString()))),
-        );
-      }
-    } else {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: Theme.of(context).cardColor,
-          title: Text(l10n.disable2FA, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-          content: Text(l10n.confirmDisable2FA, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.cancel, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n.disable, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ),
-          ],
-        ),
-      );
-      if (confirmed == true) {
-        setState(() => _twoFA = false);
-        await _saveTwoFA(false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.twoFADisabled)),
-        );
-      }
-    }
-  }
-
-  Future<String?> _showCodeDialog({required String email}) {
-    final ctrl = TextEditingController();
-    final l10n = AppLocalizations.of(context)!;
-    return showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        title: Text(l10n.enterEmailVerificationCode, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: l10n.sixDigitCodeLabel,
-            labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
-            filled: true,
-            fillColor: Theme.of(context).cardColor,
-          ),
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: Text(l10n.cancel, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, ctrl.text),
-            child: Text(l10n.verify, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // Fiók törlése
   Future<void> _deleteAccount() async {
     final u = _auth.currentUser;
     final l10n = AppLocalizations.of(context)!;
@@ -198,11 +75,13 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
-        title: Text(l10n.deleteAccount, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+        title: Text(l10n.deleteAccount,
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(l10n.confirmDeleteAccount, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
+            Text(l10n.confirmDeleteAccount,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
             const SizedBox(height: 12),
             TextField(
               controller: _passwordController,
@@ -220,7 +99,8 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+            child: Text(l10n.cancel,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
           ),
           TextButton(
             onPressed: () {
@@ -232,7 +112,8 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
                 Navigator.pop(context, true);
               }
             },
-            child: Text(l10n.deleteAccount, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text(l10n.deleteAccount,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -273,7 +154,8 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
 
   @override
   Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(context);
+    final theme = Provider.of<ThemeProvider>(context); // Témaszolgáltató provider
+    // Határozza meg a használni kívánt színt a globális téma vagy csoportszín alapján
     final effectiveColor = theme.useGlobalTheme ? theme.primaryColor : widget.groupColor;
     final l10n = AppLocalizations.of(context)!;
 
@@ -283,13 +165,13 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
           l10n.privacyAndSecurity,
           style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
         ),
-        backgroundColor: effectiveColor, // effectiveColor használata
+        backgroundColor: effectiveColor,
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              effectiveColor.withOpacity(0.2), // effectiveColor használata
+              effectiveColor.withOpacity(0.2),
               Theme.of(context).brightness == Brightness.dark ? Colors.grey[900]! : Colors.grey[200]!,
             ],
             begin: Alignment.topLeft,
@@ -299,13 +181,6 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            SwitchListTile(
-              title: Text(l10n.twoFactorAuthentication, style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
-              activeColor: widget.groupColor, // groupColor használata
-              value: _twoFA,
-              onChanged: _toggle2FA,
-            ),
-            const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -318,6 +193,7 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
               ),
             ),
             const SizedBox(height: 8),
+            // Bejelentkezett eszközök listázása valós időben
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('sessions')
@@ -349,13 +225,15 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
                       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: ListTile(
-                        title: Text('$name ($model)', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+                        title: Text('$name ($model)',
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
                         subtitle: Text(
                           '${l10n.osLabel(os)} • $time',
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
                         ),
                         trailing: TextButton(
-                          child: Text(l10n.signOut, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                          child: Text(l10n.signOut,
+                              style: TextStyle(color: Theme.of(context).colorScheme.error)),
                           onPressed: () async {
                             await FirebaseFirestore.instance
                                 .collection('sessions')
@@ -375,13 +253,16 @@ class _PrivacySecuritySettingsScreenState extends State<PrivacySecuritySettingsS
               },
             ),
             const SizedBox(height: 24),
+            // Fiók törlési opció
             Card(
               color: Theme.of(context).cardColor,
               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: ListTile(
-                leading: Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error),
-                title: Text(l10n.deleteAccount, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                leading: Icon(Icons.delete_forever,
+                    color: Theme.of(context).colorScheme.error),
+                title: Text(l10n.deleteAccount,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 onTap: _deleteAccount,
               ),
             ),

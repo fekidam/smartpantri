@@ -9,8 +9,8 @@ import '../../Providers/theme_provider.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
 class AIChatScreen extends StatefulWidget {
-  final bool fromGroupScreen;
-  final Color groupColor;
+  final bool fromGroupScreen; // Csoportból érkezett-e a felhasználó
+  final Color groupColor; // Csoport színe
 
   const AIChatScreen({
     super.key,
@@ -27,7 +27,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
   final _scrollController = ScrollController();
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
-  bool _isLoading = true, _isSending = false, _isInSharedGroup = false;
+
+  bool _isLoading = true;
+  bool _isSending = false;
+  bool _isInSharedGroup = false;
   String? _groupId;
 
   @override
@@ -38,6 +41,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
+  // Ellenőrzi, hogy van-e közös csoport
   Future<void> _checkGroup() async {
     final u = _auth.currentUser;
     if (u == null) return;
@@ -52,9 +56,11 @@ class _AIChatScreenState extends State<AIChatScreen> {
     }
   }
 
+  // Üzenet küldése és AI válasz kérése
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isSending) return;
+
     _messageController.clear();
     setState(() => _isSending = true);
 
@@ -68,6 +74,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
 
     final ai = await _getAIResponse(text);
+
     await base.add({
       'sender': 'AI',
       'content': ai,
@@ -75,6 +82,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
 
     setState(() => _isSending = false);
+
     Future.delayed(const Duration(milliseconds: 100), () {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -84,17 +92,20 @@ class _AIChatScreenState extends State<AIChatScreen> {
     });
   }
 
+  // AI válasz lekérése az OpenAI API segítségével
   Future<String> _getAIResponse(String prompt) async {
     final key = dotenv.env['OPENAI_API_KEY'] ?? '';
     if (key.isEmpty) return AppLocalizations.of(context)!.apiKeyMissing;
 
-    final isEn = RegExp(r'^[a-zA-Z0-9\s.,!?]*$').hasMatch(prompt);
-    final system = isEn
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final isHu = localeCode == 'hu';
+
+    final system = isHu
         ? '''
-You are a helpful assistant for the SmartPantri app. You can only respond to questions related to recipes and the SmartPantry app itself. For any other topics, reply with: "I can only assist with questions related to recipes and the SmartPantri app."
+Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Kérhetsz tőlem recepteket (pl. "Adj egy receptet kenyérhez" vagy "Hogyan süssek sütit"), és válaszolok lépésről lépésre magyarul. Csak a receptekkel és a SmartPantri alkalmazással kapcsolatos kérdésekre válaszolhatsz. Minden egyéb témában ezt válaszold: "Csak a receptekkel és a SmartPantri alkalmazással kapcsolatos kérdésekre válaszolhatok."
 '''
         : '''
-Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a receptekkel és a SmartPantry alkalmazással kapcsolatos kérdésekre válaszolhatsz. Minden egyéb témában ezt válaszold: "Csak a receptekkel és a SmartPantri alkalmazással kapcsolatos kérdésekre válaszolhatok."
+You are a helpful assistant for the SmartPantri app. You can provide recipes (e.g., "Give me a recipe for bread" or "How do I bake a cake") and respond step-by-step in English. You can only respond to questions related to recipes and the SmartPantri app itself. For any other topics, reply with: "I can only assist with questions related to recipes and the SmartPantri app."
 ''';
 
     final resp = await http.post(
@@ -109,6 +120,7 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
           {'role': 'system', 'content': system},
           {'role': 'user', 'content': prompt},
         ],
+        'temperature': 0.7,
       }),
     );
 
@@ -117,16 +129,20 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
       return data['choices'][0]['message']['content'] as String;
     } else {
       return AppLocalizations.of(context)!.aiResponseError(
-          resp.statusCode.toString(), resp.body);
+        resp.statusCode.toString(),
+        resp.body,
+      );
     }
   }
 
+  // Egy üzenet megjelenítése
   Widget _buildMessage(Map<String, dynamic> data) {
     final theme = Provider.of<ThemeProvider>(context);
     final fontSizeScale = theme.fontSizeScale;
     final text = data['content'] as String? ?? '';
     final sender = data['sender'] as String? ?? '';
     final isMe = sender == _auth.currentUser!.email;
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -134,7 +150,9 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
         padding: const EdgeInsets.all(12),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isMe ? (widget.fromGroupScreen ? widget.groupColor : theme.primaryColor) : Theme.of(context).cardColor,
+          color: isMe
+              ? (widget.fromGroupScreen ? widget.groupColor.withOpacity(0.7) : theme.primaryColor.withOpacity(0.7))
+              : Theme.of(context).cardColor,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -155,9 +173,13 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
     );
   }
 
+  // Üzenetek listájának megjelenítése
   Widget _buildMessages() {
     final uid = _auth.currentUser!.uid;
-    final effectiveColor = widget.fromGroupScreen ? widget.groupColor : Provider.of<ThemeProvider>(context).primaryColor;
+    final effectiveColor = widget.fromGroupScreen
+        ? widget.groupColor
+        : Provider.of<ThemeProvider>(context).primaryColor;
+
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('chats')
@@ -166,7 +188,9 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
           .orderBy('timestamp')
           .snapshots(),
       builder: (ctx, snap) {
-        if (!snap.hasData) return Center(child: CircularProgressIndicator(color: effectiveColor));
+        if (!snap.hasData) {
+          return Center(child: CircularProgressIndicator(color: effectiveColor));
+        }
         final docs = snap.data!.docs;
         return ListView.builder(
           controller: _scrollController,
@@ -181,8 +205,6 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
 
   @override
   Widget build(BuildContext context) {
-    print('AIChatScreen - fromGroupScreen: ${widget.fromGroupScreen}, groupColor: ${widget.groupColor}');
-
     final theme = Provider.of<ThemeProvider>(context);
     final l10n = AppLocalizations.of(context)!;
     final fontSizeScale = theme.fontSizeScale;
@@ -195,6 +217,7 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
         body: Center(child: CircularProgressIndicator(color: effectiveColor)),
       );
     }
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -214,35 +237,16 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
           ),
         ),
         backgroundColor: effectiveColor,
-        actions: [
-          IconButton(
-            icon: Icon(
-              iconStyle == 'filled' ? Icons.chat : Icons.chat_outlined,
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            onPressed: () {
-              if (_isInSharedGroup) {
-                Navigator.pushReplacementNamed(context, '/groupDetail', arguments: _groupId);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      l10n.needSharedGroupForFeature,
-                      style: TextStyle(fontSize: 14 * fontSizeScale),
-                    ),
-                  ),
-                );
-              }
-            },
-          ),
-        ],
+        actions: [],
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
               effectiveColor.withOpacity(gradientOpacity),
-              Theme.of(context).brightness == Brightness.dark ? Colors.grey[900]! : Colors.grey[200]!,
+              Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[900]!
+                  : Colors.grey[200]!,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -250,6 +254,18 @@ Te egy segítőkész asszisztens vagy a SmartPantri alkalmazáshoz. Csak a recep
         ),
         child: Column(
           children: [
+            if (!_isInSharedGroup)
+              Container(
+                padding: const EdgeInsets.all(16),
+                color: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                child: Text(
+                  l10n.needSharedGroupForFeature,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 14 * fontSizeScale,
+                  ),
+                ),
+              ),
             Expanded(child: _buildMessages()),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),

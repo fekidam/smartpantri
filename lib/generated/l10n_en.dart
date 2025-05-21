@@ -434,11 +434,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get whosGoingShoppingToday => 'Who\'s going shopping today?';
 
   @override
-  String sender(String sender) {
-    return 'Sender: $sender';
-  }
-
-  @override
   String get noMessage => 'No message';
 
   @override
@@ -886,6 +881,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeToYourGroups => 'Welcome to Your Groups!';
 
   @override
+  String guestCartLimitReached(Object limit) {
+    return 'You have reached the maximum limit of $limit items in guest mode.';
+  }
+
+  @override
   String get yourGroupsInfo => 'This screen helps you manage all your groups. If you shop from multiple groups, their items will be consolidated here, so you don’t need to check each group’s shopping list individually. You just have to push the Consolidated list button!';
 
   @override
@@ -913,6 +913,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tooManyRequests => 'Too Many Requests.';
 
   @override
+  String get userAlreadyInGroup => 'User is already in the group!';
+
+  @override
+  String get noItemsInYourGroups => 'No items in your consolidated list.';
+
+  @override
   String get registrationErrorUnexpected => 'Unexpected registration error.';
 
   @override
@@ -934,6 +940,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
+  String get addToShoppingList => 'Add to Shopping List';
+
+  @override
+  String itemAddedToShoppingList(String itemName) {
+    return 'Item added to shopping list: $itemName';
+  }
+
+  @override
   String get continueToApp => 'Continue to App';
 
   @override
@@ -941,4 +955,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineModeMessage => 'You are in offline mode. Some features may be unavailable.';
+
+  @override
+  String sender(String senderName) {
+    return '$senderName';
+  }
+
+  @override
+  String fromGroup(String groupName) {
+    return 'from $groupName';
+  }
 }

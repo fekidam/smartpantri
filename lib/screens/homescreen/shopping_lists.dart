@@ -88,10 +88,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Future<void> _fetchProducts() async {
     final localeCode = Localizations.localeOf(context).languageCode;
     final isHu = localeCode == 'hu';
-    final snap = await FirebaseFirestore.instance
+
+    // Lekérdezzük az összes terméket (limitáltan), és kliens oldalon szűrünk
+    final productsQuery = FirebaseFirestore.instance
         .collection('products')
-        .where(isHu ? 'name.hu' : 'name.en', isNotEqualTo: '')
-        .get();
+        .orderBy(isHu ? 'name.hu' : 'name.en')
+        .orderBy('__name__')
+        .limit(50);
+
+    final snap = await productsQuery.get();
 
     final fetched = <Product>[];
     final avail = <Map<String, dynamic>>[];
@@ -123,9 +128,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         unitMap = {'en': raw, 'hu': raw};
       }
 
+      // Kliens oldali szűrés: csak azokat tartjuk meg, ahol a név nem üres
+      final nameValue = isHu ? (nameMap['hu'] ?? '') : (nameMap['en'] ?? '');
+      if (nameValue.isEmpty) continue;
+
       fetched.add(Product(
         id: doc.id,
-        name: isHu ? (nameMap['hu'] ?? '') : (nameMap['en'] ?? ''),
+        name: nameValue,
         category: isHu ? (catMap['hu'] ?? '') : (catMap['en'] ?? ''),
         defaultUnit: (unitMap['en'] ?? 'kg').toLowerCase(),
       ));
@@ -343,6 +352,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     style: TextStyle(fontSize: 14 * fontSizeScale),
                   )));
             },
+            style: ElevatedButton.styleFrom(backgroundColor: widget.groupColor),
             child: Text(
               l10n.save,
               style: TextStyle(
@@ -350,7 +360,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 fontSize: 14 * fontSizeScale,
               ),
             ),
-            style: ElevatedButton.styleFrom(backgroundColor: widget.groupColor),
           ),
         ],
       ),
@@ -365,8 +374,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final nameMap = Map<String, dynamic>.from(item['name']);
     final itemName = nameMap[locale] ?? nameMap['en'] ?? l10n.unknownItem;
     final qtyCtrl = TextEditingController(text: '1');
-    String selectedUnit =
-        (item['defaultUnit'] as Map)['en']?.toString().toLowerCase() ?? 'kg';
+    String selectedUnit = (item['defaultUnit'] as Map)['en']?.toString().toLowerCase() ?? 'kg';
 
     final should = await showDialog<bool>(
       context: context,
@@ -389,9 +397,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 labelText: l10n.quantityLabel,
                 filled: true,
                 fillColor: Theme.of(context).cardColor,
-                labelStyle: TextStyle(
-                  fontSize: 16 * fontSizeScale,
-                ),
+                labelStyle: TextStyle(fontSize: 16 * fontSizeScale),
               ),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
@@ -404,9 +410,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 labelText: l10n.unitLabel,
                 filled: true,
                 fillColor: Theme.of(context).cardColor,
-                labelStyle: TextStyle(
-                  fontSize: 16 * fontSizeScale,
-                ),
+                labelStyle: TextStyle(fontSize: 16 * fontSizeScale),
               ),
               items: units
                   .map((u) => DropdownMenuItem(
@@ -442,6 +446,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: widget.groupColor),
             child: Text(
               l10n.save,
               style: TextStyle(
@@ -449,12 +454,23 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 fontSize: 14 * fontSizeScale,
               ),
             ),
-            style: ElevatedButton.styleFrom(backgroundColor: widget.groupColor),
           ),
         ],
       ),
     );
     if (should != true) return;
+
+    if (widget.isGuest && cartItems.length >= guestCartLimit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.guestCartLimitReached(guestCartLimit),
+            style: TextStyle(fontSize: 14 * fontSizeScale),
+          ),
+        ),
+      );
+      return;
+    }
 
     final user = FirebaseAuth.instance.currentUser;
     final createdBy = widget.isGuest ? 'guest' : user?.email;
@@ -491,7 +507,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final theme = Provider.of<ThemeProvider>(context, listen: false);
     final fontSizeScale = theme.fontSizeScale;
 
-    // block if someone else already checked it
+    // Inaktív mező, ha valaki már bejelölte
     if (item['isChecked'] == true && item['selectedBy'] != user.email) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -504,10 +520,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       return;
     }
 
-    final groupRef =
-    FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
-    final userRef =
-    FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+    final groupRef = FirebaseFirestore.instance.collection('shopping_lists').doc(widget.groupId);
+    final userRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
 
     setState(() {
       final was = item['isChecked'] == true;
@@ -515,10 +529,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       item['isPurchased'] = !was;
       if (!was) {
         item['selectedBy'] = user.email;
-        selectedItems.add(item);
-      } else {
-        item.remove('selectedBy');
-        selectedItems.removeWhere((i) => i['id'] == item['id']);
+        if (!selectedItems.any((i) => i['id'] == item['id'])) {
+          selectedItems.add(item);
+        }
+      }
+      // Frissítem a selectedItems-ben, ha már benne van
+      final sidx = selectedItems.indexWhere((i) => i['id'] == item['id']);
+      if (sidx != -1) {
+        selectedItems[sidx] = item;
       }
     });
 
@@ -535,20 +553,16 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
     await groupRef.set({'items': gItems}, SetOptions(merge: true));
 
-    // Update this user's personal list
+    // Frissítem a felhasználó listáját
     final uSnap = await userRef.get();
     final uItems = uSnap.exists
         ? List<Map<String, dynamic>>.from(uSnap.data()!['items'] ?? [])
         : <Map<String, dynamic>>[];
     final uIdx = uItems.indexWhere((i) => i['id'] == item['id']);
-    if (item['isPurchased'] == true) {
-      if (uIdx != -1) {
-        uItems[uIdx] = item;
-      } else {
-        uItems.add(item);
-      }
-    } else {
-      if (uIdx != -1) uItems.removeAt(uIdx);
+    if (uIdx != -1) {
+      uItems[uIdx] = item; // Frissítem az elemet
+    } else if (item['isPurchased'] == true) {
+      uItems.add(item); // Ha bepipálja, és még nincs a listában, hozzáadjuk
     }
     await userRef.set({'items': uItems}, SetOptions(merge: true));
   }
@@ -563,7 +577,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final nameMap = Map<String, dynamic>.from(item['name']);
     final itemName = nameMap[locale] ?? nameMap['en'] ?? '';
 
-    // only owner may delete
+    // Csak a tulajdonos törölheti
     if (widget.isGuest && addedBy != 'guest' ||
         (!widget.isGuest && (user == null || addedBy != user.email))) {
       ScaffoldMessenger.of(context)
@@ -623,7 +637,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final nameMap = Map<String, dynamic>.from(item['name']);
     final itemName = nameMap[locale] ?? nameMap['en'] ?? '';
 
-    // only owner may edit
+    // Csak a tulajdonos szerkesztheti
     if (widget.isGuest && addedBy != 'guest' ||
         (!widget.isGuest && (user == null || addedBy != user.email))) {
       ScaffoldMessenger.of(context)
@@ -713,6 +727,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: widget.groupColor),
             child: Text(
               l10n.save,
               style: TextStyle(
@@ -720,7 +735,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 fontSize: 14 * fontSizeScale,
               ),
             ),
-            style: ElevatedButton.styleFrom(backgroundColor: widget.groupColor),
           ),
         ],
       ),
@@ -894,7 +908,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
       const Divider(color: Colors.white70, height: 1),
 
-// Cart / checked items list
+// Bepipált termékek listája
       Expanded(
         flex: 3,
         child: cartItems.isEmpty

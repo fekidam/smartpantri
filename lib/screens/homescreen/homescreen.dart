@@ -7,9 +7,9 @@ import 'shopping_lists.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
 class GroupHomeScreen extends StatelessWidget {
-  final String groupId;
-  final bool isGuest;
-  final Color groupColor;
+  final String groupId; // A csoport azonosítója
+  final bool isGuest; // Vendég mód jelzése
+  final Color groupColor; // A csoporthoz rendelt szín
 
   const GroupHomeScreen({
     Key? key,
@@ -20,7 +20,7 @@ class GroupHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveGroupId = isGuest ? 'demo_group_id' : groupId;
+    final effectiveGroupId = isGuest ? 'demo_group_id' : groupId; // Ha vendég, demó csoportot használ
     final theme = Provider.of<ThemeProvider>(context);
     final l10n = AppLocalizations.of(context)!;
     final effectiveColor = theme.useGlobalTheme ? theme.primaryColor : groupColor;
@@ -34,7 +34,7 @@ class GroupHomeScreen extends StatelessWidget {
         title: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: effectiveColor.withOpacity(0.3), // Világosabb háttér a címhez
+            color: effectiveColor.withOpacity(0.3), // Háttérszín a címszöveghez
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -42,12 +42,12 @@ class GroupHomeScreen extends StatelessWidget {
             style: TextStyle(
               color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 20 * fontSizeScale,
-              fontWeight: FontWeight.bold, // Vastagabb betűtípus
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
         backgroundColor: effectiveColor,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false, // Ne jelenjen meg vissza gomb
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -65,6 +65,7 @@ class GroupHomeScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
+            // Kiadáskövető kártya
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               color: Theme.of(context).cardColor,
@@ -96,6 +97,7 @@ class GroupHomeScreen extends StatelessWidget {
                 },
               ),
             ),
+            // Hűtőtartalom kártya
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               color: Theme.of(context).cardColor,
@@ -127,6 +129,7 @@ class GroupHomeScreen extends StatelessWidget {
                 },
               ),
             ),
+            // Bevásárlólista kártya
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               color: Theme.of(context).cardColor,

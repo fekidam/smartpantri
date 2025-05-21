@@ -41,8 +41,8 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
   }
 
   Future<void> _checkAccess() async {
-    if (widget.isGuest && widget.groupId == 'demo_group_id') {
-      setState(() => hasAccess = true);
+    if (widget.isGuest) {
+      setState(() => hasAccess = false); // Vendég mód esetén tiltjuk a hűtőt
       return;
     }
     final user = FirebaseAuth.instance.currentUser;
@@ -69,6 +69,11 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
     final qtyCtrl = TextEditingController(text: '${item['quantity']}');
     final unitCtrl = TextEditingController(text: item['unit'] as String? ?? '');
     final priceCtrl = TextEditingController(text: '${item['price']?.toStringAsFixed(2) ?? '0.00'}');
+    final expDateCtrl = TextEditingController(
+      text: item['expirationDate'] != null
+          ? DateFormat('yyyy-MM-dd HH:mm').format((item['expirationDate'] as Timestamp).toDate())
+          : '',
+    );
     final locale = Localizations.localeOf(context).languageCode;
     final nameMap = item['name'] as Map<String, dynamic>;
     final itemName = nameMap[locale] ?? nameMap['en'] ?? '';
@@ -137,6 +142,57 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                 fontSize: 16 * fontSizeScale,
               ),
             ),
+            TextField(
+              controller: expDateCtrl,
+              readOnly: true, // Csak a dátumválasztóval módosítható
+              decoration: InputDecoration(
+                labelText: l10n.expires,
+                labelStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  fontSize: 16 * fontSizeScale,
+                ),
+                filled: true,
+                fillColor: Theme.of(context).cardColor,
+                suffixIcon: Icon(
+                  Icons.calendar_today,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 16 * fontSizeScale,
+              ),
+              onTap: () async {
+                final pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: item['expirationDate'] != null
+                      ? (item['expirationDate'] as Timestamp).toDate()
+                      : DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime(2100),
+                );
+                if (pickedDate != null) {
+                  final pickedTime = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.fromDateTime(
+                      item['expirationDate'] != null
+                          ? (item['expirationDate'] as Timestamp).toDate()
+                          : DateTime.now(),
+                    ),
+                  );
+                  if (pickedTime != null) {
+                    final finalDateTime = DateTime(
+                      pickedDate.year,
+                      pickedDate.month,
+                      pickedDate.day,
+                      pickedTime.hour,
+                      pickedTime.minute,
+                    );
+                    expDateCtrl.text = DateFormat('yyyy-MM-dd HH:mm').format(finalDateTime);
+                  }
+                }
+              },
+            ),
           ],
         ),
         actions: [
@@ -152,6 +208,7 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: widget.groupColor),
             child: Text(
               l10n.save,
               style: TextStyle(
@@ -159,7 +216,6 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                 fontSize: 14 * fontSizeScale,
               ),
             ),
-            style: ElevatedButton.styleFrom(backgroundColor: widget.groupColor),
           ),
         ],
       ),
@@ -169,13 +225,16 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
     final newQty = int.tryParse(qtyCtrl.text) ?? item['quantity'];
     final newUnit = unitCtrl.text;
     final newPrice = double.tryParse(priceCtrl.text) ?? item['price'] ?? 0.0;
+    final newExpDate = expDateCtrl.text.isNotEmpty
+        ? Timestamp.fromDate(DateFormat('yyyy-MM-dd HH:mm').parse(expDateCtrl.text))
+        : item['expirationDate'];
 
     final updatedItem = {
       'name': item['name'],
       'quantity': newQty,
       'unit': newUnit,
       'price': newPrice,
-      'expirationDate': item['expirationDate'],
+      'expirationDate': newExpDate,
       'addedBy': item['addedBy'],
     };
 
@@ -246,6 +305,69 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _addToShoppingList(Map<String, dynamic> item, String docId) async {
+    final l10n = AppLocalizations.of(context)!;
+    final user = FirebaseAuth.instance.currentUser!;
+    final gid = widget.groupId;
+    final locale = Localizations.localeOf(context).languageCode;
+    final nameMap = item['name'] as Map;
+    final itemName = nameMap[locale] ?? nameMap['en'] ?? '';
+
+    try {
+      // Az új elem létrehozása
+      final newItem = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'name': item['name'],
+        'quantity': item['quantity'],
+        'unit': item['unit'],
+        'price': item['price'],
+        'currency': item['currency'] ?? (locale == 'hu' ? 'HUF' : 'USD'),
+        'category': item['category'] ?? 'unknown',
+        'isPurchased': false,
+        'isChecked': false,
+        'selectedBy': user.email, // A selectedBy mezőt a jelenlegi felhasználó emailjére állítom
+        'groupId': gid,
+        'addedBy': user.email,
+      };
+
+      // 1. Hozzáadom az elemet a shopping_lists gyűjteményhez (ShoppingListScreen)
+      final groupRef = FirebaseFirestore.instance.collection('shopping_lists').doc(gid);
+      final gSnap = await groupRef.get();
+      List<Map<String, dynamic>> gItems = [];
+      if (gSnap.exists && gSnap.data() != null && gSnap.data()!['items'] != null) {
+        gItems = List<Map<String, dynamic>>.from(gSnap.data()!['items']);
+      }
+      gItems.add(newItem);
+      await groupRef.set({'items': gItems}, SetOptions(merge: true));
+
+      // 2. Hozzáadom az elemet a user_shopping_lists-hez (YourGroupsScreen)
+      final userRef = FirebaseFirestore.instance.collection('user_shopping_lists').doc(user.uid);
+      final uSnap = await userRef.get();
+      List<Map<String, dynamic>> uItems = [];
+      if (uSnap.exists && uSnap.data() != null && uSnap.data()!['items'] != null) {
+        uItems = List<Map<String, dynamic>>.from(uSnap.data()!['items']);
+      }
+      uItems.add(newItem);
+      await userRef.set({'items': uItems}, SetOptions(merge: true));
+
+      // 3. Törlöm az elemet a hűtőből
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('fridge_items')
+          .doc(docId)
+          .delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.itemAddedToShoppingList(itemName))),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Hiba történt: $e')),
+      );
+    }
   }
 
   @override
@@ -365,6 +487,11 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                   else bg = Colors.green.withOpacity(0.2);
                 }
 
+                // Ellenőrzöm, hogy az elem hamarosan lejár-e (3 napon belül, de még nem járt le)
+                bool isExpiringSoon = expDate != null &&
+                    expDate.isBefore(DateTime.now().add(const Duration(days: 3))) &&
+                    !expDate.isBefore(DateTime.now());
+
                 return Container(
                   color: bg,
                   margin: const EdgeInsets.symmetric(vertical: 6),
@@ -423,6 +550,15 @@ class _FridgeItemsScreenState extends State<FridgeItemsScreen> {
                           ),
                           onPressed: () => _removeFridgeItem(docId, data),
                         ),
+                        if (isExpiringSoon)
+                          IconButton(
+                            icon: Icon(
+                              iconStyle == 'filled' ? Icons.shopping_cart : Icons.shopping_cart_outlined,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            onPressed: () => _addToShoppingList(data, docId),
+                            tooltip: l10n.addToShoppingList,
+                          ),
                       ],
                     ),
                   ),

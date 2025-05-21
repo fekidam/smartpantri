@@ -12,10 +12,11 @@ import 'privacy_settings.dart';
 import 'theme_settings.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
+// Beállítások képernyője
 class SettingsScreen extends StatefulWidget {
-  final bool isGuest;
-  final bool? isShared;
-  final Color? groupColor;
+  final bool isGuest; // Vendég mód állapotának jelzése
+  final bool? isShared; // Megosztott mód ellenőrzése
+  final Color? groupColor; // Opcionális csoport szín
 
   const SettingsScreen({
     super.key,
@@ -29,14 +30,15 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String? profilePictureUrl;
+  String? profilePictureUrl; // Profilkép URL-je
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _loadUserData(); // Felhasználói adatok betöltése
   }
 
+  // Felhasználói adatok betöltése Firestore-ból
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -56,16 +58,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // Kijelentkezés
   Future<void> _signOut() async {
     if (!widget.isGuest) {
-      await GoogleSignIn().signOut();
+      await GoogleSignIn().signOut(); // Google kijelentkezés
     }
-    await FirebaseAuth.instance.signOut();
+    await FirebaseAuth.instance.signOut(); // Firebase kijelentkezés
     print("User logged out, clearing guest mode and skipping FCM setup.");
     await Future.delayed(const Duration(milliseconds: 100));
-    Navigator.pushReplacementNamed(context, '/welcomescreen');
+    Navigator.pushReplacementNamed(context, '/welcomescreen'); // Vissza a kezdőképernyőre
   }
 
+  // Kártya widget generálása
   Card _buildCard({required Widget child}) {
     return Card(
       color: Theme.of(context).cardColor,
@@ -77,13 +81,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(context);
+    final theme = Provider.of<ThemeProvider>(context); // Témaszolgáltató provider
     final l10n = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
+    // Határozza meg a használni kívánt színt a globális téma vagy csoportszín alapján
     final effectiveColor = theme.useGlobalTheme
         ? theme.primaryColor
         : (widget.groupColor ?? theme.primaryColor);
-    final fontSizeScale = theme.fontSizeScale; // Lekérdezzük a ThemeProvider-ból
+    final fontSizeScale = theme.fontSizeScale;
 
     return Scaffold(
       appBar: AppBar(
@@ -97,7 +102,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             l10n.settings,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onPrimary,
-              fontSize: 20 * fontSizeScale.toDouble(), // Konvertálás double-ra
+              fontSize: 20 * fontSizeScale.toDouble(),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -142,8 +147,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   title: Text(
                     user.email!,
-                    style:
-                    TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   ),
                 ),
               ),
@@ -151,12 +155,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (!widget.isGuest)
               _buildCard(
                 child: ListTile(
-                  leading: Icon(Icons.person,
-                      color: widget.groupColor ?? theme.primaryColor),
+                  leading: Icon(Icons.person, color: effectiveColor),
                   title: Text(
                     l10n.profileSettings,
-                    style:
-                    TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   ),
                   onTap: () => Navigator.push(
                     context,
@@ -172,12 +174,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (!widget.isGuest && (widget.isShared ?? true))
               _buildCard(
                 child: ListTile(
-                  leading: Icon(Icons.notifications,
-                      color: widget.groupColor ?? theme.primaryColor),
+                  leading: Icon(Icons.notifications, color: effectiveColor),
                   title: Text(
                     l10n.notifications,
-                    style:
-                    TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   ),
                   onTap: () => Navigator.push(
                     context,
@@ -192,12 +192,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             _buildCard(
               child: ListTile(
-                leading: Icon(Icons.language,
-                    color: widget.groupColor ?? theme.primaryColor),
+                leading: Icon(Icons.language, color: effectiveColor),
                 title: Text(
                   l10n.languageAndRegion,
-                  style:
-                  TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 onTap: () => Navigator.push(
                   context,
@@ -213,12 +211,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (!widget.isGuest)
               _buildCard(
                 child: ListTile(
-                  leading: Icon(Icons.security,
-                      color: widget.groupColor ?? theme.primaryColor),
+                  leading: Icon(Icons.security, color: effectiveColor),
                   title: Text(
                     l10n.privacyAndSecurity,
-                    style:
-                    TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                   ),
                   onTap: () => Navigator.push(
                     context,
@@ -233,12 +229,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             _buildCard(
               child: ListTile(
-                leading: Icon(Icons.palette,
-                    color: widget.groupColor ?? theme.primaryColor),
+                leading: Icon(Icons.palette, color: effectiveColor),
                 title: Text(
                   l10n.themeAndAppearance,
-                  style:
-                  TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 ),
                 onTap: () => Navigator.push(
                   context,

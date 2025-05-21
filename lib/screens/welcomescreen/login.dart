@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../generated/l10n.dart';
 import '../../services/auth_service.dart';
 
+// Bejelentkezési képernyő meglévő felhasználók számára
 class LoginScreen extends StatefulWidget {
   final Function(bool)? setGuestMode;
   const LoginScreen({Key? key, this.setGuestMode}) : super(key: key);
@@ -12,6 +12,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // Vezérlők és állapotváltozók
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   String? _error;
@@ -22,15 +23,17 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _authService = AuthService();
+    _authService = AuthService(); // AuthService inicializálása
   }
 
+  // Szín sötétítése a gombhoz
   Color _darken(Color color, [double amount = .2]) {
     final hsl = HSLColor.fromColor(color);
     final l = (hsl.lightness - amount).clamp(0.0, 1.0);
     return hsl.withLightness(l).toColor();
   }
 
+  // Gomb komponens
   Widget _buildActionButton({
     required String text,
     required VoidCallback? onPressed,
@@ -50,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Bejelentkezési logika
   Future<void> _login() async {
     setState(() {
       _error = null;
@@ -68,10 +72,10 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _loading = false;
       if (result['success']) {
-        widget.setGuestMode?.call(false);
-        Navigator.pushReplacementNamed(context, '/home');
+        widget.setGuestMode?.call(false); // vendég mód kikapcsolása
+        Navigator.pushReplacementNamed(context, '/home'); // navigáció a főoldalra
       } else {
-        _error = result['error'];
+        _error = result['error']; // hibaüzenet megjelenítése
       }
     });
   }
@@ -88,11 +92,15 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 40),
+
+              // Cím
               Text(
                 AppLocalizations.of(context)!.logIn,
                 style: theme.textTheme.headlineSmall!.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 32),
+
+              // Email mező
               _buildField(
                 controller: _emailCtrl,
                 hint: AppLocalizations.of(context)!.enterYourEmail,
@@ -100,6 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 onSubmitted: (_) => _login(),
               ),
               const SizedBox(height: 20),
+
+              // Jelszó mező
               _buildField(
                 controller: _passCtrl,
                 hint: AppLocalizations.of(context)!.password,
@@ -115,14 +125,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 onSubmitted: (_) => _login(),
               ),
               const SizedBox(height: 32),
+
+              // Bejelentkezés gomb
               _buildActionButton(
                 text: AppLocalizations.of(context)!.logIn,
                 onPressed: _loading ? null : _login,
               ),
+
+              // Hibaüzenet megjelenítése
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Text(_error!, style: const TextStyle(color: Colors.red)),
               ],
+
+              // Regisztrációra átirányító gomb
               TextButton(
                 onPressed: () => Navigator.pushNamed(context, '/register'),
                 child: Text(
@@ -138,6 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Szövegmező komponens (email, jelszó)
   Widget _buildField({
     required TextEditingController controller,
     required String hint,

@@ -11,6 +11,28 @@
         "firebase-debug.*.log",
         "*.local"
       ]
+    },
+    {
+      "source": "smartpantri",
+      "codebase": "functions2",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    },
+    {
+      "source": "functions2",
+      "codebase": "functions3",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
     }
   ],
   "emulators": {

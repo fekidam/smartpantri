@@ -905,12 +905,6 @@ abstract class AppLocalizations {
   /// **'Who\'s going shopping today?'**
   String get whosGoingShoppingToday;
 
-  /// Label for the notification sender
-  ///
-  /// In en, this message translates to:
-  /// **'Sender: {sender}'**
-  String sender(String sender);
-
   /// No description provided for @noMessage.
   ///
   /// In en, this message translates to:
@@ -1697,6 +1691,12 @@ abstract class AppLocalizations {
   /// **'Welcome to Your Groups!'**
   String get welcomeToYourGroups;
 
+  /// Message shown when a guest user reaches the cart item limit
+  ///
+  /// In en, this message translates to:
+  /// **'You have reached the maximum limit of {limit} items in guest mode.'**
+  String guestCartLimitReached(Object limit);
+
   /// No description provided for @yourGroupsInfo.
   ///
   /// In en, this message translates to:
@@ -1751,6 +1751,18 @@ abstract class AppLocalizations {
   /// **'Too Many Requests.'**
   String get tooManyRequests;
 
+  /// No description provided for @userAlreadyInGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'User is already in the group!'**
+  String get userAlreadyInGroup;
+
+  /// No description provided for @noItemsInYourGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'No items in your consolidated list.'**
+  String get noItemsInYourGroups;
+
   /// No description provided for @registrationErrorUnexpected.
   ///
   /// In en, this message translates to:
@@ -1793,6 +1805,18 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
+  /// Tooltip for the button to add an item to the shopping list.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Shopping List'**
+  String get addToShoppingList;
+
+  /// Message shown when an item is successfully added to the shopping list.
+  ///
+  /// In en, this message translates to:
+  /// **'Item added to shopping list: {itemName}'**
+  String itemAddedToShoppingList(String itemName);
+
   /// No description provided for @continueToApp.
   ///
   /// In en, this message translates to:
@@ -1810,6 +1834,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You are in offline mode. Some features may be unavailable.'**
   String get offlineModeMessage;
+
+  /// Label for the notification sender
+  ///
+  /// In en, this message translates to:
+  /// **'{senderName}'**
+  String sender(String senderName);
+
+  /// Label indicating the group the notification is from
+  ///
+  /// In en, this message translates to:
+  /// **'from {groupName}'**
+  String fromGroup(String groupName);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

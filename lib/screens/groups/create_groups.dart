@@ -7,8 +7,9 @@ import '../../models/data.dart';
 import '../../Providers/theme_provider.dart';
 import 'group_detail.dart';
 
+// Új csoport létrehozására szolgáló képernyő
 class CreateGroupScreen extends StatefulWidget {
-  final bool isGuest;
+  final bool isGuest; // Megmutatja, hogy vendég módban van-e a felhasználó
 
   const CreateGroupScreen({Key? key, required this.isGuest}) : super(key: key);
 
@@ -17,9 +18,9 @@ class CreateGroupScreen extends StatefulWidget {
 }
 
 class _CreateGroupScreenState extends State<CreateGroupScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  Color _selectedColor = Colors.blue;
-  final List<Color> _colorOptions = [
+  final TextEditingController _nameController = TextEditingController(); // Csoportnév vezérlő
+  Color _selectedColor = Colors.blue; // Alapértelmezett szín
+  final List<Color> _colorOptions = [ // Választható színek
     Colors.blue,
     Colors.green,
     Colors.orange,
@@ -29,13 +30,15 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     Colors.yellow,
     Colors.pink,
   ];
-  bool _loading = false;
+  bool _loading = false; // Betöltési állapot
 
+  // Szín sötétítése a gombhoz
   Color _darken(Color c, [double amt = .2]) {
     final h = HSLColor.fromColor(c);
     return h.withLightness((h.lightness - amt).clamp(0.0, 1.0)).toColor();
   }
 
+  // Gomb felépítése
   Widget _buildActionButton({
     required String text,
     required VoidCallback? onPressed,
@@ -57,11 +60,15 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     );
   }
 
+  // Csoport mentése Firestore-ba
   Future<void> _saveGroup() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;
+
     setState(() => _loading = true);
     final user = FirebaseAuth.instance.currentUser;
+
+    // Ha nincs bejelentkezve a felhasználó
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.userNotLoggedIn)),
@@ -69,16 +76,24 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       setState(() => _loading = false);
       return;
     }
+
+    // Színt hexadecimális formátumba alakítom
     final hex = _selectedColor.value.toRadixString(16).substring(2);
+
+    // Csoport adatainak összeállítása
     final groupData = {
       'name': name,
       'color': hex,
       'userId': user.uid,
       'sharedWith': [user.uid],
     };
+
     try {
+      // Új dokumentum létrehozása a "groups" kollekcióban
       final docRef = await FirebaseFirestore.instance.collection('groups').add(groupData);
       final groupId = docRef.id;
+
+      // Navigálás a részletező oldalra
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -96,6 +111,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         ),
       );
     } catch (e) {
+      // Hiba esetén visszajelzés
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.failedToCreateGroup)),
       );
@@ -148,6 +164,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         ),
         child: SafeArea(
           child: widget.isGuest
+          // Vendég módban csak figyelmeztetés jelenik meg
               ? Center(
             child: Text(
               l10n.guestModeRestriction,
@@ -158,19 +175,20 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               ),
             ),
           )
+          // Normál esetben a csoportlétrehozó űrlap
               : SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 16),
+
+                // Csoportnév beírása
                 TextField(
                   controller: _nameController,
                   decoration: InputDecoration(
                     labelText: l10n.groupName,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     filled: true,
                     fillColor: Theme.of(context).cardColor,
                   ),
@@ -179,7 +197,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     fontSize: 16 * fontSizeScale,
                   ),
                 ),
+
                 const SizedBox(height: 24),
+
+                // Színválasztó felirat
                 Text(
                   l10n.selectColor,
                   style: TextStyle(
@@ -188,6 +209,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+
+                // Színválasztó körök
                 Wrap(
                   spacing: 10,
                   children: _colorOptions.map((c) {
@@ -199,7 +222,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: selected ? Theme.of(context).colorScheme.onSurface : Colors.transparent,
+                            color: selected
+                                ? Theme.of(context).colorScheme.onSurface
+                                : Colors.transparent,
                             width: 3,
                           ),
                         ),
@@ -208,7 +233,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     );
                   }).toList(),
                 ),
+
                 const SizedBox(height: 32),
+
+                // Csoport létrehozása gomb
                 _buildActionButton(
                   text: l10n.addGroup,
                   onPressed: _loading ? null : _saveGroup,

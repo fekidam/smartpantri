@@ -66,7 +66,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isMe ? widget.groupColor : Theme.of(context).cardColor,
+          color: isMe ? widget.groupColor.withOpacity(0.7) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(

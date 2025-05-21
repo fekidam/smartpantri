@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:smartpantri/generated/l10n.dart'; // AppLocalizations import
+import 'package:smartpantri/generated/l10n.dart';
 
+// Képernyő az allergiák kiválasztására
 class AllergySelectionScreen extends StatefulWidget {
-  final List<String> selectedAllergies;
-  final Function(List<String>) onSelectionChanged;
+  final List<String> selectedAllergies; // Kiválasztott allergiák listája
+  final Function(List<String>) onSelectionChanged; // Callback a kiválasztás változásakor
 
   const AllergySelectionScreen({
     super.key,
@@ -16,6 +17,7 @@ class AllergySelectionScreen extends StatefulWidget {
 }
 
 class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
+  // Elérhető allergiák kulcsai a lokalizációhoz
   final List<String> allergyKeys = [
     'allergyDairy',
     'allergyEgg',
@@ -29,19 +31,21 @@ class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
     'allergyTreeNut',
     'allergyWheat',
   ];
-  bool allSelected = false;
+  bool allSelected = false; // Minden allergia kiválasztva állapot
 
+  // Összes allergia ki-/bekapcsolása
   void _toggleSelectAll() {
     setState(() {
       if (allSelected) {
-        widget.selectedAllergies.clear();
+        widget.selectedAllergies.clear(); // Minden allergia törlése
       } else {
+        // Összes allergia hozzáadása a lokalizált nevekkel
         widget.selectedAllergies
           ..clear()
           ..addAll(allergyKeys.map((key) => AppLocalizations.of(context)!.getString(key)));
       }
-      allSelected = !allSelected;
-      widget.onSelectionChanged(widget.selectedAllergies);
+      allSelected = !allSelected; // Állapot váltása
+      widget.onSelectionChanged(widget.selectedAllergies); // Callback hívása
     });
   }
 
@@ -66,12 +70,13 @@ class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        // Allergiák listájának megjelenítése
         child: ListView.separated(
           itemCount: allergyKeys.length,
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final key = allergyKeys[index];
-            final label = l10n.getString(key);
+            final label = l10n.getString(key); // Allergia neve lokalizáltan
             final isSelected = widget.selectedAllergies.contains(label);
 
             return Card(
@@ -84,10 +89,10 @@ class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
                 value: isSelected,
                 onChanged: (v) {
                   setState(() {
-                    if (v == true) widget.selectedAllergies.add(label);
-                    else widget.selectedAllergies.remove(label);
+                    if (v == true) widget.selectedAllergies.add(label); // Allergia hozzáadása
+                    else widget.selectedAllergies.remove(label); // Allergia eltávolítása
                     allSelected = widget.selectedAllergies.length == allergyKeys.length;
-                    widget.onSelectionChanged(widget.selectedAllergies);
+                    widget.onSelectionChanged(widget.selectedAllergies); // Callback hívása
                   });
                 },
               ),
@@ -98,13 +103,13 @@ class _AllergySelectionScreenState extends State<AllergySelectionScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: theme.primaryColor,
         child: const Icon(Icons.check),
-        onPressed: () => Navigator.pop(context, widget.selectedAllergies),
+        onPressed: () => Navigator.pop(context, widget.selectedAllergies), // Kiválasztás mentése és vissza navigálás
       ),
     );
   }
 }
 
-/// Extension remains unchanged:
+// AppLocalizations kiterjesztés az allergia kulcsok kezelésére
 extension AppLocalizationsExtension on AppLocalizations {
   String getString(String key) {
     switch (key) {

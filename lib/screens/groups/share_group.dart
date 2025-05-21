@@ -50,26 +50,38 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
       setState(() => _message = AppLocalizations.of(context)!.pleaseEnterEmailAddress);
       return;
     }
+
     setState(() => _loading = true);
+
     try {
+      print('Searching for user with email: $email');
       final snap = await FirebaseFirestore.instance
           .collection('users')
           .where('email', isEqualTo: email)
           .get();
+
       if (snap.docs.isEmpty) {
+        print('No user found for email: $email');
         setState(() => _message = AppLocalizations.of(context)!.userNotFound);
       } else {
         final userId = snap.docs.first.id;
+        print('Found user with UID: $userId');
+
         await FirebaseFirestore.instance
             .collection('groups')
             .doc(widget.groupId)
             .update({
           'sharedWith': FieldValue.arrayUnion([userId])
         });
-        setState(() => _message = AppLocalizations.of(context)!.groupSharedSuccessfully);
+
+        print('Group shared with UID: $userId');
+        setState(() {
+          _message = AppLocalizations.of(context)!.groupSharedSuccessfully;
+        });
         _emailCtrl.clear();
       }
     } catch (e) {
+      print('Error sharing group: $e');
       setState(() => _message = '${AppLocalizations.of(context)!.errorSharingGroup} $e');
     } finally {
       setState(() => _loading = false);

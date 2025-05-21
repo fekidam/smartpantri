@@ -8,14 +8,15 @@ import 'package:smartpantri/generated/l10n.dart';
 import '../../Providers/theme_provider.dart';
 import '../../services/translation_service.dart';
 
+// Recept részleteit megjelenítő képernyő
 class RecipeDetailScreen extends StatefulWidget {
-  final int recipeId;
-  final Color groupColor; // Hozzáadva a groupColor
+  final int recipeId; // Recept azonosítója
+  final Color groupColor; // Csoport színe
 
   const RecipeDetailScreen({
     super.key,
     required this.recipeId,
-    required this.groupColor, // Kötelező paraméter
+    required this.groupColor,
   });
 
   @override
@@ -23,27 +24,29 @@ class RecipeDetailScreen extends StatefulWidget {
 }
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
-  Map<String, dynamic>? recipeDetails;
-  bool isLoading = true;
+  Map<String, dynamic>? recipeDetails; // Recept adatai
+  bool isLoading = true; // Betöltési állapot
 
   @override
   void initState() {
     super.initState();
+    // Recept részleteinek betöltése a képernyő inicializálása után
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchRecipeDetails();
     });
   }
 
+  // Recept részleteinek lekérése a Spoonacular API-ból
   Future<void> _fetchRecipeDetails() async {
     try {
       final locale = Localizations.localeOf(context);
-      final isHungarian = locale.languageCode == 'hu';
+      final isHungarian = locale.languageCode == 'hu'; // Magyar nyelv ellenőrzése
 
       final apiKey = dotenv.env['SPOONACULAR_API_KEY'] ?? '';
       final url =
           'https://api.spoonacular.com/recipes/${widget.recipeId}/information?apiKey=$apiKey';
 
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url)); // API hívás
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -53,12 +56,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       final fetchedDetails =
       jsonDecode(response.body) as Map<String, dynamic>;
 
+      // Hozzávalók kinyerése
       final ingredients = (fetchedDetails['extendedIngredients']
       as List<dynamic>)
           .map((e) =>
       (e as Map<String, dynamic>)['original'] as String? ?? '')
           .toList();
 
+      // Magyar nyelvre fordítás, ha szükséges
       if (isHungarian) {
         fetchedDetails['title'] = await translateToHungarian(
           context,
@@ -95,6 +100,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       setState(() => isLoading = false);
       final theme = Provider.of<ThemeProvider>(context, listen: false);
       final fontSizeScale = theme.fontSizeScale;
+      // Hibaüzenet megjelenítése snackbar formájában
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -112,6 +118,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     final theme = Provider.of<ThemeProvider>(context);
     final fontSizeScale = theme.fontSizeScale;
     final gradientOpacity = theme.gradientOpacity;
+    // Határozza meg a használni kívánt színt a globális téma vagy csoportszín alapján
     final effectiveColor = theme.useGlobalTheme ? theme.primaryColor : widget.groupColor;
 
     return Scaffold(
@@ -157,6 +164,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Recept képének megjelenítése
               if (recipeDetails!['image'] != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
@@ -190,6 +198,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+              // Hozzávalók listázása
               ...((recipeDetails!['extendedIngredients']
               as List<dynamic>)
                   .map<Widget>((ing) {
@@ -215,6 +224,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+              // Utasítások megjelenítése HTML formátumban
               if ((recipeDetails!['instructions'] as String?)
                   ?.isNotEmpty ==
                   true)

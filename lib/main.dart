@@ -6,8 +6,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smartpantri/screens/chats/ai_chat.dart';
-import 'package:smartpantri/screens/chats/group_and_ai_chat.dart';
 import 'package:smartpantri/screens/settings/theme_settings.dart';
 import 'package:smartpantri/Providers/app_state_provider.dart';
 import 'package:smartpantri/Providers/language_provider.dart';
@@ -31,39 +29,33 @@ import 'package:smartpantri/models/data.dart';
 import 'package:smartpantri/screens/groups/group_detail.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
+// Háttérben lévő push üzenetek kezelése
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
 }
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+// Lokális értesítésekhez szükséges plugin
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
+// Lokális értesítések inicializálása időzónával együtt
 Future<void> initializeLocalNotifications() async {
   tz.initializeTimeZones();
-
   try {
-    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    final currentTimeZone = await FlutterTimezone.getLocalTimezone();
     final localLocation = tz.getLocation(currentTimeZone);
     tz.setLocalLocation(localLocation);
-    print("Local timezone set to: $currentTimeZone");
   } catch (e) {
-    print("Error getting local timezone: $e");
-    final localLocation = tz.getLocation('UTC');
-    tz.setLocalLocation(localLocation);
-    print("Fallback to UTC timezone");
+    tz.setLocalLocation(tz.getLocation('UTC'));
   }
 
-  const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('app_icon');
-  const DarwinInitializationSettings initializationSettingsIOS =
-  DarwinInitializationSettings();
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsIOS,
+  const initializationSettings = InitializationSettings(
+    android: AndroidInitializationSettings('app_icon'),
+    iOS: DarwinInitializationSettings(),
   );
+
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse response) {
+    onDidReceiveNotificationResponse: (response) {
       print("Notification clicked: ${response.payload}");
     },
   );
@@ -71,19 +63,17 @@ Future<void> initializeLocalNotifications() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await dotenv.load(fileName: "apikeys.env");
 
+  // Firebase és AppCheck inicializálása
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         name: 'smartpantri-dc717',
         options: DefaultFirebaseOptions.currentPlatform,
       );
-      print("Firebase initialized successfully");
     }
-  } catch (e) {
-    print("Error initializing Firebase: $e");
+  } catch (_) {
     return;
   }
 
@@ -92,28 +82,20 @@ Future<void> main() async {
       androidProvider: AndroidProvider.debug,
       appleProvider: AppleProvider.debug,
     );
-    print("Firebase App Check activated successfully");
-  } catch (e) {
-    print("Error activating Firebase App Check: $e");
-  }
+  } catch (_) {}
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
   await initializeLocalNotifications();
 
-  // LanguageProvider inicializálása és a mentett nyelv betöltése
+  // Nyelvi beállítások betöltése
   final languageProvider = LanguageProvider();
   await languageProvider.loadLocale();
 
+  // App indítása providerekkel
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<ThemeProvider>(
-          create: (_) => ThemeProvider(
-            isDarkMode: true,
-            primaryColor: Colors.blue,
-          )..loadThemeAsync(),
-        ),
+        ChangeNotifierProvider(create: (_) => ThemeProvider(isDarkMode: true, primaryColor: Colors.blue)..loadThemeAsync()),
         ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
         ChangeNotifierProvider(create: (_) => AppStateProvider()),
       ],
@@ -122,9 +104,9 @@ Future<void> main() async {
   );
 }
 
+// Fő widget osztály
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
-
   @override
   _MyAppState createState() => _MyAppState();
 }
@@ -138,13 +120,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _loadGuestMode();
 
+    // FCM inicializálása bejelentkezett felhasználónál
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+      FirebaseAuth.instance.authStateChanges().listen((user) async {
         if (user != null) {
-          print("User logged in: ${user.uid}, setting up FCM...");
           await _setupFCM(context);
         } else {
-          print("User logged out, clearing guest mode and skipping FCM setup.");
           await clearGuestMode();
         }
       });
@@ -157,18 +138,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  // App lifecycle változás kezelése (pl. háttérbe megy)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final appStateProvider = Provider.of<AppStateProvider>(context, listen: false);
-    if (state == AppLifecycleState.resumed) {
-      appStateProvider.setAppState(true);
-      print("App is in foreground");
-    } else if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      appStateProvider.setAppState(false);
-      print("App is in background or inactive");
-    }
+    appStateProvider.setAppState(state == AppLifecycleState.resumed);
   }
 
+  // Vendég mód betöltése shared preferences-ből
   Future<void> _loadGuestMode() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -176,6 +153,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
   }
 
+  // Vendég mód beállítása
   Future<void> setGuestMode(bool isGuest) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -184,6 +162,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
   }
 
+  // Vendég mód törlése és FCM token eltávolítása
   Future<void> clearGuestMode() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -193,139 +172,72 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     FirebaseMessaging.instance.deleteToken();
   }
 
+  // FCM beállítása (engedélykérés, token mentés, üzenetek kezelése)
   Future<void> _setupFCM(BuildContext context) async {
-    if (isGuestMode) {
-      print("Guest mode is enabled, skipping FCM setup.");
-      return;
-    }
+    if (isGuestMode) return;
 
-    try {
-      FirebaseMessaging messaging = FirebaseMessaging.instance;
+    final messaging = FirebaseMessaging.instance;
+    final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
+    if (settings.authorizationStatus != AuthorizationStatus.authorized && settings.authorizationStatus != AuthorizationStatus.provisional) return;
 
-      NotificationSettings settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+    final token = await messaging.getToken();
+    if (token == null) return;
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        print("Notification permission granted.");
-      } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
-        print("Provisional notification permission granted.");
-      } else {
-        print("Notification permission denied.");
-        return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await _saveFCMToken(user.uid, token);
+
+    messaging.onTokenRefresh.listen((newToken) async {
+      final refreshedUser = FirebaseAuth.instance.currentUser;
+      if (refreshedUser != null) {
+        await _saveFCMToken(refreshedUser.uid, newToken);
       }
+    });
 
-      String? token;
-      try {
-        token = await messaging.getToken();
-        if (token == null) {
-          print("Failed to get FCM token: token is null.");
-          return;
-        }
-        print("FCM Device Token: $token");
-      } catch (e) {
-        print("Error getting FCM token: $e");
-        return;
+    FirebaseMessaging.onMessage.listen((message) {
+      final notification = message.notification;
+      if (notification != null) {
+        flutterLocalNotificationsPlugin.show(
+          0,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails('channel_id', 'Channel Name', importance: Importance.max, priority: Priority.high),
+          ),
+        );
       }
+    });
 
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        print("No user logged in, skipping FCM setup.");
-        return;
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      final screen = message.data['screen'];
+      final groupId = message.data['groupId'];
+      if (screen == 'notifications') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(groupId: groupId, isGuest: isGuestMode)));
+      } else if (screen == 'group_home') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => HomeScreen(isGuest: isGuestMode)));
       }
+    });
 
-      await _saveFCMToken(user.uid, token);
-
-      messaging.onTokenRefresh.listen((newToken) async {
-        User? refreshedUser = FirebaseAuth.instance.currentUser;
-        if (refreshedUser != null) {
-          await _saveFCMToken(refreshedUser.uid, newToken);
-        }
-      });
-
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        print("Message received while app is open: ${message.notification?.title}");
-        print("Message body: ${message.notification?.body}");
-
-        if (message.notification != null) {
-          flutterLocalNotificationsPlugin.show(
-            0,
-            message.notification!.title,
-            message.notification!.body,
-            NotificationDetails(
-              android: AndroidNotificationDetails(
-                'channel_id',
-                'Channel Name',
-                importance: Importance.max,
-                priority: Priority.high,
-              ),
-            ),
-          );
-        }
-      });
-
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        print("Notification clicked and app opened: ${message.notification?.title}");
-        if (message.data['screen'] == 'notifications') {
-          String groupId = message.data['groupId'];
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => NotificationsScreen(groupId: groupId, isGuest: isGuestMode),
-            ),
-          );
-        } else if (message.data['screen'] == 'group_home') {
-          String groupId = message.data['groupId'];
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HomeScreen(isGuest: isGuestMode),
-            ),
-          );
-        }
-      });
-
-      FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
-        if (message != null) {
-          if (message.data['screen'] == 'notifications') {
-            String groupId = message.data['groupId'];
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NotificationsScreen(groupId: groupId, isGuest: isGuestMode),
-              ),
-            );
-          } else if (message.data['screen'] == 'group_home') {
-            String groupId = message.data['groupId'];
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => HomeScreen(isGuest: isGuestMode),
-              ),
-            );
-          }
-        }
-      });
-    } catch (e) {
-      print("Error setting up FCM: $e");
+    final initialMessage = await messaging.getInitialMessage();
+    if (initialMessage != null) {
+      final screen = initialMessage.data['screen'];
+      final groupId = initialMessage.data['groupId'];
+      if (screen == 'notifications') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(groupId: groupId, isGuest: isGuestMode)));
+      } else if (screen == 'group_home') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => HomeScreen(isGuest: isGuestMode)));
+      }
     }
   }
 
+  // FCM token mentése Firestore-ba
   Future<void> _saveFCMToken(String userId, String token) async {
-    // Ellenőrizzük, hogy a felhasználó be van-e jelentkezve
-    if (FirebaseAuth.instance.currentUser == null) {
-      print("User is not logged in, skipping FCM token save.");
-      return;
-    }
+    if (FirebaseAuth.instance.currentUser == null) return;
 
     try {
       final tokenRef = FirebaseFirestore.instance.collection('fcm_tokens').doc(token);
-      final userTokensRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('tokens');
+      final userTokensRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('tokens');
       final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
 
       await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -333,61 +245,32 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         final existingTokens = await userTokensRef.get();
         final userDoc = await transaction.get(userRef);
 
-        if (tokenDoc.exists) {
-          final tokenData = tokenDoc.data()!;
-          final existingUserId = tokenData['userId'];
-          if (existingUserId != userId) {
-            print("Token $token is already associated with user $existingUserId. It will be reassigned to $userId.");
-          }
-        }
-
-        for (var tokenDoc in existingTokens.docs) {
-          transaction.delete(tokenDoc.reference);
-          print("Cleared old token ${tokenDoc['token']} from user $userId in tokens subcollection");
+        for (var doc in existingTokens.docs) {
+          transaction.delete(doc.reference);
         }
 
         final newTokenRef = userTokensRef.doc();
-        transaction.set(newTokenRef, {
-          'token': token,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-
-        transaction.set(tokenRef, {
-          'userId': userId,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+        transaction.set(newTokenRef, {'token': token, 'updatedAt': FieldValue.serverTimestamp()});
+        transaction.set(tokenRef, {'userId': userId, 'updatedAt': FieldValue.serverTimestamp()});
 
         if (userDoc.exists && userDoc.data()!.containsKey('fcmToken')) {
-          transaction.update(userRef, {
-            'fcmToken': FieldValue.delete(),
-          });
-          print("Ensured fcmToken field is deleted for user $userId");
+          transaction.update(userRef, {'fcmToken': FieldValue.delete()});
         }
       });
-
-      print("Successfully saved token $token for user $userId");
-    } catch (e) {
-      print("Error saving FCM token for user $userId: $e");
-      rethrow;
-    }
+    } catch (_) {}
   }
 
+  // Csoport betöltése route alapján
   Future<Group?> _fetchGroup(BuildContext context) async {
     final args = ModalRoute.of(context)!.settings.arguments as Map?;
-    final groupId = args != null && args.containsKey('groupId') ? args['groupId'] as String : null;
-    if (groupId == null) {
-      print('No groupId provided in route arguments');
-      return null;
-    }
+    final groupId = args?['groupId'];
+    if (groupId == null) return null;
+
     try {
-      final groupDoc = await FirebaseFirestore.instance.collection('groups').doc(groupId).get();
-      if (!groupDoc.exists) {
-        print('Group not found: $groupId');
-        return null;
-      }
-      return Group.fromJson(groupId, groupDoc.data()!);
-    } catch (e) {
-      print('Error fetching group: $e');
+      final doc = await FirebaseFirestore.instance.collection('groups').doc(groupId).get();
+      if (!doc.exists) return null;
+      return Group.fromJson(groupId, doc.data()!);
+    } catch (_) {
       return null;
     }
   }
@@ -395,9 +278,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
+      builder: (_, themeProvider, __) {
         return Consumer<LanguageProvider>(
-          builder: (context, languageProvider, child) {
+          builder: (_, languageProvider, __) {
             return MaterialApp(
               title: AppLocalizations.of(context)?.appTitle ?? 'SmartPantry',
               theme: themeProvider.lightTheme,
@@ -411,92 +294,38 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 GlobalCupertinoLocalizations.delegate,
               ],
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const SplashScreen(),
+              home: SplashScreen(myAppState: this), // Átadjuk a MyAppState referenciát
               routes: {
-                '/login': (context) => LoginScreen(setGuestMode: setGuestMode),
-                '/register': (context) => RegisterScreen(setGuestMode: setGuestMode),
-                '/welcomescreen': (context) => WelcomeScreen(setGuestMode: setGuestMode),
-                '/home': (context) => HomeScreen(isGuest: isGuestMode),
-                '/verify-email': (context) => isGuestMode
+                '/login': (_) => LoginScreen(setGuestMode: setGuestMode),
+                '/register': (_) => RegisterScreen(setGuestMode: setGuestMode),
+                '/welcomescreen': (_) => WelcomeScreen(setGuestMode: setGuestMode),
+                '/home': (_) => HomeScreen(isGuest: isGuestMode),
+                '/verify-email': (_) => isGuestMode
                     ? WelcomeScreen(setGuestMode: setGuestMode)
                     : const VerifyEmailScreen(),
-                '/group-chat': (context) => isGuestMode
+                '/group-chat': (_) => isGuestMode
                     ? WelcomeScreen(setGuestMode: setGuestMode)
                     : FutureBuilder<Group?>(
-                  future: _fetchGroup(context),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-                      return Scaffold(
-                        body: Center(
-                          child: Text(
-                            AppLocalizations.of(context)!.failedToLoadGroup(
-                                snapshot.error?.toString() ?? "Group not found"),
-                          ),
-                        ),
-                      );
-                    }
-                    final group = snapshot.data!;
-                    final isShared = group.sharedWith.length > 1;
-                    return GroupDetailScreen(
-                      group: group,
-                      isGuest: isGuestMode,
-                      isShared: isShared,
-                      arguments: {'selectedIndex': 2},
-                    );
-                  },
-                ),
-                '/ai-chat': (context) => isGuestMode
+                    future: _fetchGroup(context),
+                    builder: (_, snapshot) {
+                      if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                      final group = snapshot.data!;
+                      return GroupDetailScreen(group: group, isGuest: isGuestMode, isShared: group.sharedWith.length > 1, arguments: {'selectedIndex': 2});
+                    }),
+                '/ai-chat': (_) => isGuestMode
                     ? WelcomeScreen(setGuestMode: setGuestMode)
                     : FutureBuilder<Group?>(
-                  future: _fetchGroup(context),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-                      return Scaffold(
-                        body: Center(
-                          child: Text(
-                            AppLocalizations.of(context)!.failedToLoadGroup(
-                                snapshot.error?.toString() ?? "Group not found"),
-                          ),
-                        ),
-                      );
-                    }
-                    final group = snapshot.data!;
-                    final isShared = group.sharedWith.length > 1;
-                    return GroupDetailScreen(
-                      group: group,
-                      isGuest: isGuestMode,
-                      isShared: isShared,
-                      arguments: {'selectedIndex': 2},
-                    );
-                  },
-                ),
-                '/theme-settings': (context) => const ThemeSettingsScreen(),
-                '/settings': (context) => Builder(
-                  builder: (context) {
-                    final theme = Provider.of<ThemeProvider>(context, listen: false);
-                    return SettingsScreen(
-                      isGuest: isGuestMode,
-                      groupColor: theme.primaryColor,
-                    );
-                  },
-                ),
-                '/notifications': (context) => isGuestMode
+                    future: _fetchGroup(context),
+                    builder: (_, snapshot) {
+                      if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                      final group = snapshot.data!;
+                      return GroupDetailScreen(group: group, isGuest: isGuestMode, isShared: group.sharedWith.length > 1, arguments: {'selectedIndex': 2});
+                    }),
+                '/theme-settings': (_) => const ThemeSettingsScreen(),
+                '/settings': (_) => SettingsScreen(isGuest: isGuestMode, groupColor: Provider.of<ThemeProvider>(context, listen: false).primaryColor),
+                '/notifications': (_) => isGuestMode
                     ? WelcomeScreen(setGuestMode: setGuestMode)
-                    : NotificationsScreen(
-                  groupId: ModalRoute.of(context)!.settings.arguments as String? ??
-                      'default_group_id',
-                  isGuest: isGuestMode,
-                ),
+                    : NotificationsScreen(groupId: ModalRoute.of(context)!.settings.arguments as String? ?? 'default_group_id', isGuest: isGuestMode),
               },
             );
           },
@@ -506,8 +335,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 }
 
+// Splash képernyő megjelenítése az induláskor
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final _MyAppState myAppState; // MyAppState referenciája
+  const SplashScreen({super.key, required this.myAppState});
 
   @override
   _SplashScreenState createState() => _SplashScreenState();
@@ -520,9 +351,12 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeApp();
+    });
   }
 
+  // Splash alatt döntés: belép vagy WelcomeScreen
   Future<void> _initializeApp() async {
     try {
       _imageUrl = await _storageService.getHomePageImageUrl();
@@ -530,31 +364,32 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)?.failedToLoadImage ?? 'Failed to load image'),
+            content: Text(
+              AppLocalizations.of(context)?.failedToLoadImage ?? 'Failed to load image',
+            ),
           ),
         );
       }
     }
 
-    if (mounted) {
-      User? user = FirebaseAuth.instance.currentUser;
-      final prefs = await SharedPreferences.getInstance();
-      bool isGuestMode = prefs.getBool('isGuestMode') ?? false;
+    if (!mounted) return;
 
-      if (user != null && !isGuestMode) {
+    final user = FirebaseAuth.instance.currentUser;
+    final prefs = await SharedPreferences.getInstance();
+    final isGuestMode = prefs.getBool('isGuestMode') ?? false;
+
+    if (user != null && !isGuestMode) {
+      if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(isGuest: false),
-          ),
+          MaterialPageRoute(builder: (_) => HomeScreen(isGuest: false)),
         );
-      } else {
+      }
+    } else {
+      if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => WelcomeScreen(
-              setGuestMode: (bool isGuest) {
-                final myAppState = context.findAncestorStateOfType<_MyAppState>();
-                myAppState?.setGuestMode(isGuest);
-              },
+            builder: (_) => WelcomeScreen(
+              setGuestMode: widget.myAppState.setGuestMode, // Közvetlenül a MyAppState metódusát használjuk
             ),
           ),
         );
@@ -566,9 +401,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).primaryColor,
-      body: const Center(
-        child: CircularProgressIndicator(),
-      ),
+      body: const Center(child: CircularProgressIndicator()),
     );
   }
 }

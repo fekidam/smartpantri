@@ -434,11 +434,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get whosGoingShoppingToday => 'Ki megy ma bevásárolni?';
 
   @override
-  String sender(String sender) {
-    return 'Feladó: $sender';
-  }
-
-  @override
   String get noMessage => 'Nincs üzenet';
 
   @override
@@ -886,6 +881,11 @@ class AppLocalizationsHu extends AppLocalizations {
   String get welcomeToYourGroups => 'Üdvözöljük a Csoportjaidnál!';
 
   @override
+  String guestCartLimitReached(Object limit) {
+    return 'Elérted a vendég módban engedélyezett $limit termék maximális limitjét.';
+  }
+
+  @override
   String get yourGroupsInfo => 'Ez a képernyő segít a csoportjaid kezelésében. Ha több csoportból szeretnél termékeket megvásárolni, azok itt összevonásra kerülnek, így nem kell mindig egyenként megnézned a csoportok bevásárlólistáit. Csak kattints az Összesített Lista gombra!';
 
   @override
@@ -913,6 +913,12 @@ class AppLocalizationsHu extends AppLocalizations {
   String get tooManyRequests => 'Túl sok kérés.';
 
   @override
+  String get userAlreadyInGroup => 'A felhasználó már tagja a csoportnak.';
+
+  @override
+  String get noItemsInYourGroups => 'Nincs termék az összesített listádban.';
+
+  @override
   String get registrationErrorUnexpected => 'Váratlan regisztrációs hiba.';
 
   @override
@@ -934,6 +940,14 @@ class AppLocalizationsHu extends AppLocalizations {
   String get delete => 'Törlés';
 
   @override
+  String get addToShoppingList => 'Hozzáadás a Bevásárlólistához';
+
+  @override
+  String itemAddedToShoppingList(String itemName) {
+    return 'Elem hozzáadva a bevásárlólistához: $itemName';
+  }
+
+  @override
   String get continueToApp => 'Folytatás az alkalmazásban';
 
   @override
@@ -941,4 +955,14 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get offlineModeMessage => 'Offline módban vagy. Előfordulhat, hogy néhány funkció nem megfelelő.';
+
+  @override
+  String sender(String senderName) {
+    return '$senderName';
+  }
+
+  @override
+  String fromGroup(String groupName) {
+    return '$groupName-ból';
+  }
 }

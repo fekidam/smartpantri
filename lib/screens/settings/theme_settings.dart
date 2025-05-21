@@ -4,23 +4,24 @@ import '../../Providers/theme_provider.dart';
 import 'package:smartpantri/generated/l10n.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
+// Téma- és megjelenési beállítások képernyője
 class ThemeSettingsScreen extends StatelessWidget {
-  final Color? groupColor; // Opcionális groupColor paraméter hozzáadása
+  final Color? groupColor; // Opcionális csoport szín
 
   const ThemeSettingsScreen({super.key, this.groupColor});
 
   @override
   Widget build(BuildContext context) {
-    final themeProv = Provider.of<ThemeProvider>(context);
-    final isDark = themeProv.isDarkMode;
-    final primary = themeProv.primaryColor;
-    final useGlobalTheme = themeProv.useGlobalTheme;
-    final fontSizeScale = themeProv.fontSizeScale;
-    final gradientOpacity = themeProv.gradientOpacity;
-    final iconStyle = themeProv.iconStyle;
+    final themeProv = Provider.of<ThemeProvider>(context); // Témaszolgáltató provider
+    final isDark = themeProv.isDarkMode; // Sötét mód állapot
+    final primary = themeProv.primaryColor; // Elsődleges szín
+    final useGlobalTheme = themeProv.useGlobalTheme; // Globális téma használata
+    final fontSizeScale = themeProv.fontSizeScale; // Betűméret skála
+    final gradientOpacity = themeProv.gradientOpacity; // Gradiens átlátszóság
+    final iconStyle = themeProv.iconStyle; // Ikonstílus
     final l10n = AppLocalizations.of(context)!;
 
-    // Határozzuk meg az effectiveColor-t a useGlobalTheme alapján
+    // Határozza meg az effectiveColor-t a useGlobalTheme alapján
     final effectiveColor = useGlobalTheme ? primary : (groupColor ?? primary);
 
     return Scaffold(
@@ -58,8 +59,8 @@ class ThemeSettingsScreen extends StatelessWidget {
               activeColor: effectiveColor, // effectiveColor használata
               value: isDark,
               onChanged: (v) {
-                themeProv.toggleDarkMode(v);
-                themeProv.notifyListeners();
+                themeProv.toggleDarkMode(v); // Sötét mód váltása
+                themeProv.notifyListeners(); // Provider értesítése
               },
             ),
             const SizedBox(height: 16),
@@ -73,8 +74,8 @@ class ThemeSettingsScreen extends StatelessWidget {
               activeColor: effectiveColor, // effectiveColor használata
               value: useGlobalTheme,
               onChanged: (v) {
-                themeProv.toggleGlobalTheme(v);
-                themeProv.notifyListeners();
+                themeProv.toggleGlobalTheme(v); // Globális téma váltása
+                themeProv.notifyListeners(); // Provider értesítése
               },
             ),
             const SizedBox(height: 16),
@@ -98,6 +99,7 @@ class ThemeSettingsScreen extends StatelessWidget {
                 trailing: CircleAvatar(backgroundColor: primary, radius: 16),
                 onTap: () {
                   Color pick = primary;
+                  // Színválasztó dialógus megjelenítése
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
@@ -126,9 +128,9 @@ class ThemeSettingsScreen extends StatelessWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            themeProv.setPrimaryColor(pick);
-                            themeProv.notifyListeners();
-                            Navigator.pop(context);
+                            themeProv.setPrimaryColor(pick); // Elsődleges szín beállítása
+                            themeProv.notifyListeners(); // Provider értesítése
+                            Navigator.pop(context); // Dialógus bezárása
                           },
                           child: Text(
                             l10n.save,
@@ -162,8 +164,8 @@ class ThemeSettingsScreen extends StatelessWidget {
                   divisions: 4,
                   label: '${(fontSizeScale * 100).round()}%',
                   onChanged: (v) {
-                    themeProv.setFontSizeScale(v);
-                    themeProv.notifyListeners();
+                    themeProv.setFontSizeScale(v); // Betűméret skála beállítása
+                    themeProv.notifyListeners(); // Provider értesítése
                   },
                 ),
                 trailing: Text(
@@ -194,8 +196,8 @@ class ThemeSettingsScreen extends StatelessWidget {
                   divisions: 4,
                   label: '${(gradientOpacity * 100).round()}%',
                   onChanged: (v) {
-                    themeProv.setGradientOpacity(v);
-                    themeProv.notifyListeners();
+                    themeProv.setGradientOpacity(v); // Gradiens átlátszóság beállítása
+                    themeProv.notifyListeners(); // Provider értesítése
                   },
                 ),
                 trailing: Text(
@@ -230,8 +232,8 @@ class ThemeSettingsScreen extends StatelessWidget {
                     );
                   }).toList(),
                   onChanged: (v) {
-                    themeProv.setIconStyle(v ?? 'filled');
-                    themeProv.notifyListeners();
+                    themeProv.setIconStyle(v ?? 'filled'); // Ikonstílus beállítása
+                    themeProv.notifyListeners(); // Provider értesítése
                   },
                 ),
               ),

@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartpantri/screens/groups/your_groups.dart';
+import 'package:stream_transform/stream_transform.dart';
 import '../../generated/l10n.dart';
 import '../../models/data.dart';
 import 'info_dialog.dart';
@@ -26,11 +27,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription<QuerySnapshot>? _groupsSubscription;
   final StreamController<List<Map<String, dynamic>>> _groupsController = StreamController.broadcast();
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
     _showInfoDialogIfFirstLaunch();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args?['showSnackBar'] == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(args?['message'] ?? '')),
+        );
+      }
+      _refreshGroups();
+    });
   }
 
   @override
@@ -38,6 +49,18 @@ class _HomeScreenState extends State<HomeScreen> {
     _groupsSubscription?.cancel();
     _groupsController.close();
     super.dispose();
+  }
+
+  Future<void> _refreshGroups() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    try {
+      _groupsController.add(await _fetchGroups().first);
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
   }
 
   Future<void> _showInfoDialogIfFirstLaunch() async {
@@ -61,9 +84,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Stream<List<Map<String, dynamic>>> _fetchGroups() {
-    return FirebaseAuth.instance.authStateChanges().asyncMap((User? user) async {
+    return FirebaseAuth.instance.authStateChanges().switchMap((User? user) {
       if (widget.isGuest || user == null) {
-        return [
+        return Stream.value([
           {
             'group': Group(
               id: 'demo_group_id',
@@ -73,91 +96,97 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             'isShared': false,
           }
-        ];
+        ]);
       }
 
+      final uid = user.uid;
+      print('Fetching groups for UID: $uid');
       final snapshots = FirebaseFirestore.instance
           .collection('groups')
-          .where('sharedWith', arrayContains: user.uid)
+          .where(Filter.or(
+        Filter('sharedWith', arrayContains: uid),
+        Filter('userId', isEqualTo: uid),
+      ))
           .snapshots();
+
       return snapshots.map((snap) {
+        print('Fetched groups: ${snap.docs.map((doc) => doc.data()).toList()}');
         return snap.docs.map((doc) {
           final g = Group.fromJson(doc.id, doc.data());
-          return {'group': g, 'isShared': g.sharedWith.length > 1} as Map<String, dynamic>;
+          return {'group': g, 'isShared': g.sharedWith.length > 1};
         }).toList();
-      }).first;
+      });
     });
   }
 
   Future<void> _showEditGroupDialog(Group group) async {
     final nameCtrl = TextEditingController(text: group.name);
     Color selectedColor = Color(int.parse('0xFF${group.color}'));
+
     await showDialog(
       context: context,
-      builder: (_) => StatefulBuilder(builder: (_, setSt) {
-        return AlertDialog(
-          title: Text(AppLocalizations.of(context)!.editGroup),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(labelText: AppLocalizations.of(context)!.groupName),
-                ),
-                const SizedBox(height: 10),
-                Text(AppLocalizations.of(context)!.groupTagColor),
-                const SizedBox(height: 10),
-                BlockPicker(
-                  pickerColor: selectedColor,
-                  onColorChanged: (c) => setSt(() => selectedColor = c),
-                  availableColors: const [
-                    Colors.blue,
-                    Colors.green,
-                    Colors.orange,
-                    Colors.purple,
-                    Colors.red,
-                    Colors.teal,
-                    Colors.yellow,
-                    Colors.pink,
-                  ],
-                ),
-              ],
+      builder: (_) => StatefulBuilder(
+        builder: (_, setSt) {
+          return AlertDialog(
+            title: Text(AppLocalizations.of(context)!.editGroup),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: InputDecoration(labelText: AppLocalizations.of(context)!.groupName),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(AppLocalizations.of(context)!.groupTagColor),
+                  const SizedBox(height: 10),
+                  BlockPicker(
+                    pickerColor: selectedColor,
+                    onColorChanged: (c) => setSt(() => selectedColor = c),
+                    availableColors: const [
+                      Colors.blue, Colors.green, Colors.orange, Colors.purple,
+                      Colors.red, Colors.teal, Colors.yellow, Colors.pink,
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(AppLocalizations.of(context)!.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameCtrl.text.isNotEmpty) {
-                  await FirebaseFirestore.instance.collection('groups').doc(group.id).update({
-                    'name': nameCtrl.text,
-                    'color': selectedColor.value.toRadixString(16).substring(2),
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!.groupUpdatedSuccessfully),
-                    ),
-                  );
-                }
-              },
-              child: Text(AppLocalizations.of(context)!.save),
-            ),
-          ],
-        );
-      }),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(AppLocalizations.of(context)!.cancel),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameCtrl.text.isNotEmpty) {
+                    await FirebaseFirestore.instance.collection('groups').doc(group.id).update({
+                      'name': nameCtrl.text,
+                      'color': selectedColor.value.toRadixString(16).substring(2),
+                    });
+                    Navigator.pop(context);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(AppLocalizations.of(context)!.groupUpdatedSuccessfully)),
+                      );
+                    }
+                  }
+                },
+                child: Text(AppLocalizations.of(context)!.save),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   Future<void> _deleteGroup(Group group) async {
     await FirebaseFirestore.instance.collection('groups').doc(group.id).delete();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.groupDeleted)),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.groupDeleted)),
+      );
+    }
   }
 
   Color _darken(Color c, [double amt = .2]) {
@@ -222,112 +251,127 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: StreamBuilder<List<Map<String, dynamic>>>(
-            stream: _fetchGroups(),
-            builder: (ctx, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snap.hasError) {
-                return Center(
-                  child: Text(
-                    l10n.errorFetchingGroups(snap.error.toString()),
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium!.color,
-                      fontSize: 14 * fontSizeScale,
-                    ),
-                  ),
-                );
-              }
-              final data = snap.data ?? [];
-              if (data.isEmpty) {
-                return Center(
-                  child: Text(
-                    l10n.noGroupsFound,
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium!.color,
-                      fontSize: 14 * fontSizeScale,
-                    ),
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: data.length,
-                itemBuilder: (_, i) {
-                  final group = data[i]['group'] as Group;
-                  final shared = data[i]['isShared'] as bool;
-                  final color = Color(int.parse('0xFF${group.color}'));
-                  return Card(
-                    color: Theme.of(context).cardColor,
-                    margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    child: ListTile(
-                      leading: CircleAvatar(backgroundColor: color),
-                      title: Text(
-                        group.name,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 16 * fontSizeScale,
-                        ),
-                      ),
-                      subtitle: shared
-                          ? Text(
-                        l10n.shared,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                          fontSize: 14 * fontSizeScale,
-                        ),
-                      )
-                          : null,
-                      trailing: widget.isGuest
-                          ? null
-                          : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              iconStyle == 'filled' ? Icons.person_add : Icons.person_add_outlined,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => ShareGroupScreen(groupId: group.id),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              iconStyle == 'filled' ? Icons.edit : Icons.edit_outlined,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                            onPressed: () => _showEditGroupDialog(group),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              iconStyle == 'filled' ? Icons.delete : Icons.delete_outlined,
-                              color: Colors.red,
-                            ),
-                            onPressed: () => _deleteGroup(group),
-                          ),
-                        ],
-                      ),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => GroupDetailScreen(
-                            group: group,
-                            isGuest: widget.isGuest,
-                            isShared: shared,
-                          ),
-                        ),
+          child: RefreshIndicator(
+            onRefresh: _refreshGroups,
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _fetchGroups(),
+              builder: (ctx, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snap.hasError) {
+                  return Center(
+                    child: Text(
+                      l10n.errorFetchingGroups(snap.error.toString()),
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium!.color,
+                        fontSize: 14 * fontSizeScale,
                       ),
                     ),
                   );
-                },
-              );
-            },
+                }
+
+                final data = snap.data ?? [];
+                if (data.isEmpty) {
+                  return Center(
+                    child: Text(
+                      l10n.noGroupsFound,
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium!.color,
+                        fontSize: 14 * fontSizeScale,
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: data.length,
+                  itemBuilder: (_, i) {
+                    final group = data[i]['group'] as Group;
+                    final shared = data[i]['isShared'] as bool;
+                    final color = Color(int.parse('0xFF${group.color}'));
+
+                    return Card(
+                      color: Theme.of(context).cardColor,
+                      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      child: ListTile(
+                        leading: CircleAvatar(backgroundColor: color),
+                        title: Text(
+                          group.name,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 16 * fontSizeScale,
+                          ),
+                        ),
+                        subtitle: shared
+                            ? Text(
+                          l10n.shared,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            fontSize: 14 * fontSizeScale,
+                          ),
+                        )
+                            : null,
+                        trailing: widget.isGuest
+                            ? null
+                            : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                iconStyle == 'filled' ? Icons.person_add : Icons.person_add_outlined,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ShareGroupScreen(groupId: group.id),
+                                  ),
+                                );
+                                _refreshGroups();
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                iconStyle == 'filled' ? Icons.edit : Icons.edit_outlined,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                              onPressed: () async {
+                                await _showEditGroupDialog(group);
+                                _refreshGroups();
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                iconStyle == 'filled' ? Icons.delete : Icons.delete_outlined,
+                                color: Colors.red,
+                              ),
+                              onPressed: () async {
+                                await _deleteGroup(group);
+                                _refreshGroups();
+                              },
+                            ),
+                          ],
+                        ),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => GroupDetailScreen(
+                              group: group,
+                              isGuest: widget.isGuest,
+                              isShared: shared,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -348,10 +392,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ? null
           : FloatingActionButton(
         backgroundColor: _darken(theme.primaryColor),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => CreateGroupScreen(isGuest: widget.isGuest)),
-        ),
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => CreateGroupScreen(isGuest: widget.isGuest)),
+          );
+          _refreshGroups();
+        },
         child: Icon(iconStyle == 'filled' ? Icons.add : Icons.add_outlined),
       ),
     );

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Új elem hozzáadására szolgáló képernyő (pl. bevásárlólista vagy költségkövetés)
 class AddItemScreen extends StatelessWidget {
-  final String collectionName;
-  final String groupId;
+  final String collectionName; // pl. "shopping_list" vagy "expense_tracker"
+  final String groupId; // Az aktuális csoport azonosítója
 
   const AddItemScreen({
     super.key,
@@ -13,6 +14,7 @@ class AddItemScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Vezérlők az űrlap mezőkhöz
     TextEditingController itemController = TextEditingController();
     TextEditingController quantityController = TextEditingController();
 
@@ -24,6 +26,7 @@ class AddItemScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: <Widget>[
+            // Első szövegmező: elem neve vagy kategória
             TextField(
               controller: itemController,
               decoration: InputDecoration(
@@ -31,6 +34,8 @@ class AddItemScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+
+            // Második szövegmező: mennyiség vagy összeg
             TextField(
               controller: quantityController,
               decoration: InputDecoration(
@@ -39,10 +44,15 @@ class AddItemScreen extends StatelessWidget {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
+
+            // Hozzáadás gomb
             ElevatedButton(
               onPressed: () async {
+                // Csak akkor menti el, ha mindkét mező ki van töltve
                 if (itemController.text.isNotEmpty && quantityController.text.isNotEmpty) {
                   Map<String, dynamic> data = {};
+
+                  // Különböző mezők expense trackerhez vagy más gyűjteményhez
                   if (collectionName == 'expense_tracker') {
                     data = {
                       'category': itemController.text,
@@ -54,11 +64,15 @@ class AddItemScreen extends StatelessWidget {
                       'quantity': quantityController.text,
                     };
                   }
+
+                  // Adat hozzáadása Firestore-hoz
                   await FirebaseFirestore.instance
                       .collection('groups')
                       .doc(groupId)
                       .collection(collectionName)
                       .add(data);
+
+                  // Visszatérés az előző képernyőre
                   Navigator.pop(context);
                 }
               },
