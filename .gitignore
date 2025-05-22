@@ -72,3 +72,4 @@ node_modules/
 .idea/
 build/
 apikeys.env
+assets/service_account_key.json
