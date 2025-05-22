@@ -72,5 +72,5 @@ node_modules/
 .idea/
 build/
 apikeys.env
-assets/service_account_key.json.flutter-plugins-dependencies
+assets/service_account_key.json
 smartpantri-backup/
