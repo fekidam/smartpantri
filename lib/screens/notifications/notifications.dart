@@ -9,12 +9,11 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../../Providers/theme_provider.dart';
 import 'package:smartpantri/generated/l10n.dart';
 
-// Értesítési képernyő, amely megjeleníti a csoport értesítéseit
 class NotificationsScreen extends StatefulWidget {
-  final String groupId; // A csoport azonosítója
-  final bool isGuest; // Vendég mód állapotának jelzése
-  final bool fromGroupScreen; // Csoport képernyőről érkezett-e a felhasználó
-  final Color groupColor; // A csoport színe
+  final String groupId;
+  final bool isGuest;
+  final bool fromGroupScreen;
+  final Color groupColor;
 
   const NotificationsScreen({
     super.key,
@@ -31,10 +30,9 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Új értesítés küldése a Firestore-ba és push értesítés a csoporttagoknak
   Future<void> _sendNotification(String messageKey) async {
     final user = _auth.currentUser;
-    if (user == null || widget.groupId.isEmpty) return; // Ha nincs felhasználó vagy csoport ID, kilép
+    if (user == null || widget.groupId.isEmpty) return;
 
     final message = _getMessage(messageKey);
     final groupDoc = await FirebaseFirestore.instance
@@ -43,7 +41,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .get();
     final groupName = groupDoc.exists ? groupDoc['name'] ?? 'Unknown Group' : 'Unknown Group';
 
-    // Értesítés hozzáadása a Firestore 'notifications' kollekciójához
     await FirebaseFirestore.instance.collection('notifications').add({
       'message': message,
       'timestamp': FieldValue.serverTimestamp(),
@@ -53,7 +50,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'senderEmail': user.email,
     });
 
-    if (!groupDoc.exists) return; // Ha a csoport nem létezik, kilép
+    if (!groupDoc.exists) return;
 
     final sharedWith = List<String>.from(groupDoc['sharedWith'] ?? []);
     for (final uid in sharedWith) {
@@ -65,12 +62,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .get();
       for (final tok in tokensSnap.docs) {
         final fcm = tok['token'] as String? ?? '';
-        final ok = await _sendPushNotification(fcm, message, user.email!, groupName);
+        await _sendPushNotification(fcm, message, user.email!, groupName);
       }
     }
   }
 
-  // Lokalizált üzenet kiválasztása a megadott kulcs alapján
   String _getMessage(String messageKey) {
     final l10n = AppLocalizations.of(context)!;
     switch (messageKey) {
@@ -85,8 +81,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  // Push értesítés küldése az FCM (Firebase Cloud Messaging) segítségével
-  Future<bool> _sendPushNotification(String token, String message, String senderEmail, String groupName) async {
+  Future<void> _sendPushNotification(String token, String message, String senderEmail, String groupName) async {
     try {
       final saJson = await rootBundle.loadString('assets/service_account_key.json');
       final Map<String, dynamic> saMap = jsonDecode(saJson);
@@ -120,17 +115,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         body: jsonEncode(payload),
       );
       client.close();
+
       if (resp.statusCode != 200) {
         print('FCM error: ${resp.statusCode} - ${resp.body}');
+        final errorBody = jsonDecode(resp.body);
+        if (errorBody['error']?['status'] == 'NOT_FOUND' &&
+            errorBody['error']?['details']?[0]?['errorCode'] == 'UNREGISTERED') {
+          final user = _auth.currentUser;
+          if (user != null) {
+            final tokensSnap = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .collection('tokens')
+                .where('token', isEqualTo: token)
+                .get();
+            for (final doc in tokensSnap.docs) {
+              await doc.reference.delete();
+              print('Deleted invalid FCM token: $token');
+            }
+          }
+        }
       }
-      return resp.statusCode == 200; // Sikeres küldés esetén igazat ad vissza
     } catch (e) {
       print('Error sending push notification: $e');
-      return false;
     }
   }
 
-  // Értesítési opciók megjelenítése egy alsó modal ablakban
   void _showNotificationOptions() {
     final l10n = AppLocalizations.of(context)!;
     final theme = Provider.of<ThemeProvider>(context, listen: false);
@@ -156,7 +166,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // Egy értesítési opció megjelenítése a modal ablakban
   Widget _buildOptionTile(IconData icon, String title, String key, double fontSizeScale) {
     final effectiveColor = widget.fromGroupScreen ? widget.groupColor : Provider.of<ThemeProvider>(context).primaryColor;
     return ListTile(
@@ -172,8 +181,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
       ),
       onTap: () {
-        Navigator.of(context).pop(); // Modal ablak bezárása
-        _sendNotification(key); // Értesítés küldése
+        Navigator.of(context).pop();
+        _sendNotification(key);
       },
     );
   }
@@ -184,7 +193,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final l10n = AppLocalizations.of(context)!;
     final fontSizeScale = theme.fontSizeScale;
     final gradientOpacity = theme.gradientOpacity;
-    // Határozza meg a használni kívánt színt a globális téma vagy csoportszín alapján
     final effectiveColor = theme.useGlobalTheme
         ? theme.primaryColor
         : (widget.fromGroupScreen ? widget.groupColor : theme.primaryColor);
@@ -234,7 +242,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
         )
-        // Értesítések valós idejű megjelenítése StreamBuilder segítségével
             : StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('notifications')
@@ -281,7 +288,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ? DateFormat('yyyy/MM/dd HH:mm').format(ts)
                     : l10n.noTimestampAvailable;
 
-                // Csoportnév lekérése Firestore-ból, ha nem volt tárolva
                 return FutureBuilder<DocumentSnapshot>(
                   future: FirebaseFirestore.instance
                       .collection('groups')
@@ -300,7 +306,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       }
                     }
 
-                    // Egy értesítés megjelenítése kártyaként
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       color: Theme.of(context).cardColor,
@@ -342,7 +347,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           : FloatingActionButton(
         backgroundColor: effectiveColor,
         onPressed: _showNotificationOptions,
-        child: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary), // Új értesítés hozzáadása gomb
+        child: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
       ),
     );
   }

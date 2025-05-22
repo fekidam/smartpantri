@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -66,6 +67,8 @@ class _ShareGroupScreenState extends State<ShareGroupScreen> {
       } else {
         final userId = snap.docs.first.id;
         print('Found user with UID: $userId');
+        print('Current groupId: ${widget.groupId}');
+        print('Current user UID: ${FirebaseAuth.instance.currentUser?.uid}');
 
         await FirebaseFirestore.instance
             .collection('groups')

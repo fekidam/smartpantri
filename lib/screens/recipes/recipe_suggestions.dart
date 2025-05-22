@@ -218,7 +218,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  backgroundColor: theme.primaryColor,
+                  backgroundColor: theme.primaryColor, // Globális téma színének használata
                 ),
                 onPressed: () => _viewRecipeDetails(recipe['id'] as int),
                 child: Text(
@@ -243,10 +243,10 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
     final fontSizeScale = theme.fontSizeScale;
     final gradientOpacity = theme.gradientOpacity;
     final iconStyle = theme.iconStyle;
-    // Határozza meg a használni kívánt színt a csoport vagy globális téma alapján
-    final effectiveColor = widget.fromGroupScreen
-        ? widget.groupColor
-        : theme.primaryColor;
+    // Határozza meg a használni kívánt színt a globális téma alapján
+    final effectiveColor = theme.useGlobalTheme
+        ? theme.primaryColor
+        : (widget.fromGroupScreen ? widget.groupColor : theme.primaryColor);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -287,9 +287,7 @@ class _RecipeSuggestionsScreenState extends State<RecipeSuggestionsScreen> {
           gradient: LinearGradient(
             colors: [
               effectiveColor.withOpacity(gradientOpacity),
-              Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey[900]!
-                  : Colors.grey[200]!,
+              Theme.of(context).brightness == Brightness.dark ? Colors.grey[900]! : Colors.grey[200]!,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
